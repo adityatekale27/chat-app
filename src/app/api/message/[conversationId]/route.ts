@@ -68,14 +68,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ conv
   DELETE method to permanently remove a message by using messageId
   from the conversation that current user is part of.
 */
-export async function DELETE(request: Request, context: { params: { conversationId: string } }) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ conversationId: string }> }) {
   try {
     const currentUser = await getCurrentUser();
     if (!currentUser) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const { conversationId } = await context.params;
+    const { conversationId } = await params;
     if (!conversationId) {
       return NextResponse.json({ message: "Conversation ID is required" }, { status: 400 });
     }
