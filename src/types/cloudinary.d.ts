@@ -1,7 +1,7 @@
 declare module "next-cloudinary" {
   interface CldUploadButtonProps {
     children?: React.ReactNode;
-    onUpload?: (result: any) => void;
+    onUpload?: (result: { public_id: string; url: string; [key: string]: string | number | boolean }) => void;
     onError?: (error: Error) => void;
     onOpen?: () => void;
     options?: {
@@ -20,5 +20,11 @@ declare module "next-cloudinary" {
   }
 
   export const CldUploadButton: React.FC<CldUploadButtonProps>;
-  export const CldImage: React.FC<any>;
+  export const CldImage: React.FC<{
+    src: string;
+    alt?: string;
+    width?: number;
+    height?: number;
+    [key: string]: string | number | boolean | undefined;
+  }>;
 }

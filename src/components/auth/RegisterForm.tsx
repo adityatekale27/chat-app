@@ -82,9 +82,14 @@ export function RegisterForm({ className, ...props }: React.ComponentProps<"div"
         toast.success("Registration Successful!");
         router.push("/chat");
       }
-    } catch (error: any) {
-      console.log("Register error:", error);
-      toast.error(error?.response?.data?.message || error?.response?.data?.error || "Registration failed");
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        console.error("Register error:", error);
+        toast.error(error.response?.data?.message || error.response?.data?.error || "Registration failed");
+      } else {
+        console.error("Unexpected error:", error);
+        toast.error("An unexpected error occurred");
+      }
     } finally {
       setIsLoading(false);
     }

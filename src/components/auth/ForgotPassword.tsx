@@ -36,10 +36,10 @@ export default function ForgotPassword({ onClose }: ForgotPasswordProps) {
     setFormError("");
 
     try {
-      const {data} = await axios.post('/api/auth/password/forgot-password')
+      await axios.post("/api/auth/password/forgot-password");
+
       console.log(data);
-      
-      toast.success(data);
+      toast.success("");
       onClose();
     } catch (err) {
       console.error(err);
