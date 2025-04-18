@@ -64,7 +64,7 @@ export const useChat = (currentUserId: string) => {
     });
 
     // bind conversation update
-    userChannel.bind("conversation:updated", (data: any) => {
+    userChannel.bind("conversation:updated", (data: { updatedConversation?: Conversation; updatedGroup?: Conversation; action: string }) => {
       if (["group_update", "admin_left", "member_left"].includes(data.action)) {
         const updated = data.updatedConversation || data.updatedGroup;
         if (!updated) return;
@@ -109,10 +109,14 @@ export const useChat = (currentUserId: string) => {
     try {
       const { data } = await axios.get(searchTerm ? `/api/chat?search=${encodeURIComponent(searchTerm)}` : "/api/chat");
       setConversations(data);
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (axios.isCancel(err)) return;
-      setError(err.response?.data?.message || "Failed to fetch conversations");
       console.log("fetchConversations error:", err);
+      if (axios.isAxiosError(err)) {
+        setError(err.response?.data?.message || "Failed to fetch conversations");
+      } else {
+        setError("An unexpected error occurred");
+      }
     } finally {
       setLoading(false);
     }
@@ -126,8 +130,12 @@ export const useChat = (currentUserId: string) => {
     try {
       const { data } = await axios.get(`/api/chat/${conversationId}`);
       setCurrentConversation(data);
-    } catch (error: any) {
-      setError(error.response?.data?.message || "Failed to fetch conversation");
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        setError(error.response?.data?.message || "Failed to fetch conversation");
+      } else {
+        setError("An unexpected error occurred");
+      }
       console.log("fetchConversationById error:", error);
     } finally {
       setMessagesLoading(false);
@@ -142,8 +150,12 @@ export const useChat = (currentUserId: string) => {
     try {
       const { data } = await axios.get(`/api/message/${conversationId}`);
       setMessages(data);
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to fetch messages");
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err)) {
+        setError(err.response?.data?.message || "Failed to fetch messages");
+      } else {
+        setError("An unexpected error occurred");
+      }
       console.log("fetchMessages error:", err);
     } finally {
       setLoading(false);
@@ -169,8 +181,12 @@ export const useChat = (currentUserId: string) => {
 
       setMessages((prev) => [...prev, data]);
       return data;
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to send message");
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err)) {
+        setError(err.response?.data?.message || "Failed to send message");
+      } else {
+        setError("An unexpected error occurred");
+      }
       console.log("sendMessage error:", err);
       return null;
     } finally {
@@ -183,8 +199,12 @@ export const useChat = (currentUserId: string) => {
     try {
       setError(null);
       await axios.delete(`/api/message/${conversationId}`, { data: { messageId } });
-    } catch (error: any) {
-      setError(error.response?.data?.message || "Failed to delete message");
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        setError(error.response?.data?.message || "Failed to delete message");
+      } else {
+        setError("An unexpected error occurred");
+      }
       console.log("Error deleting message:", error);
       throw error;
     }

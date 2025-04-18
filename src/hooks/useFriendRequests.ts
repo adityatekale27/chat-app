@@ -7,6 +7,17 @@ import toast from "react-hot-toast";
 import { useInfiniteScroll } from "./useInfiniteScroll";
 import { getPusherClient } from "@/libs/pusher/pusherClient";
 
+interface UpdatedUser {
+  name: string | null;
+  bio: string | null;
+  username: string;
+  image: string | null;
+  id: string;
+  email: string;
+  isOnline: boolean;
+  lastOnline: Date | null;
+};
+
 interface FriendRequestProps {
   sentRequest: (Contact & { receiver: User })[];
   receivedRequest: (Contact & { sender: User })[];
@@ -31,7 +42,7 @@ export function useFriendRequests(currentUserId: string, searchFriendTerm: strin
    * Fetch paginated friend contacts (50 at a time).
    * If search term changed, it resets the list.
    */
-  const fetchAllContacts = async (friendSearchChanged = false) => {
+  const fetchAllContacts = useCallback(async (friendSearchChanged = false) => {
     setIsLoading(true);
     setError(null);
 
@@ -52,14 +63,18 @@ export function useFriendRequests(currentUserId: string, searchFriendTerm: strin
 
       // if lastUserId is null then their are no more users
       setHasMore(Boolean(data.lastFriendId));
-    } catch (error: any) {
-      console.log("fetchAllContact error:", error);
+    } catch (error: unknown) {
       if (axios.isCancel(error)) return;
-      setError(error.response?.data?.message || "Failed to get Contacts Data");
+      console.log("fetchAllContact error:", error);
+      if (axios.isAxiosError(error)) {
+        setError(error.response?.data?.message || "Failed to get Contacts Data");
+      } else {
+        setError("An unexpected error occurred");
+      }
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [searchFriendTerm, lastFriendId]);
 
   // Fetch other user friends list
   const fetchOtherUserFriends = useCallback(async (otherUserId: string, otherUserName: string) => {
@@ -94,11 +109,11 @@ export function useFriendRequests(currentUserId: string, searchFriendTerm: strin
       );
 
       toast.success("Friend request sent!");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.log("sendFriendRequest error:", error);
-      const errorMessage = error.response?.data?.message || "Failed to send request";
+      const errorMessage = axios.isAxiosError(error) ? error.response?.data?.message || "Failed to send request" : "An unexpected error occurred";
 
-      if (error.response?.status === 429) {
+      if (axios.isAxiosError(error) && error.response?.status === 429) {
         setIsRateLimited(true);
       } else {
         setError(errorMessage);
@@ -134,9 +149,13 @@ export function useFriendRequests(currentUserId: string, searchFriendTerm: strin
       });
 
       toast.success(wasFriend ? "Friend removed successfully" : "Friend request canceled");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.log("cancelFriendRequest error:", error);
-      setError(error.response?.data?.message || "Failed to delete");
+      if (axios.isAxiosError(error)) {
+        setError(error.response?.data?.message || "Failed to delete");
+      } else {
+        setError("An unexpected error occurred");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -173,9 +192,13 @@ export function useFriendRequests(currentUserId: string, searchFriendTerm: strin
       );
 
       toast.success("Friend request accepted!");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.log("acceptFriendRequests:", error);
-      setError(error.response?.data?.message || "Failed to accept request");
+      if (axios.isAxiosError(error)) {
+        setError(error.response?.data?.message || "Failed to accept request");
+      } else {
+        setError("An unexpected error occurred");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -190,7 +213,7 @@ export function useFriendRequests(currentUserId: string, searchFriendTerm: strin
 
     const delayDebounce = setTimeout(() => fetchAllContacts(true), 300);
     return () => clearTimeout(delayDebounce);
-  }, [searchFriendTerm]);
+  }, [searchFriendTerm, fetchAllContacts]);
 
   // handle infinite scroll
   const { containerRef } = useInfiniteScroll({
@@ -207,7 +230,7 @@ export function useFriendRequests(currentUserId: string, searchFriendTerm: strin
     const friendsChannel = pusher.subscribe(currentUserId);
 
     // bind request send
-    friendsChannel.bind("friend:request:new", (data: any) => {
+    friendsChannel.bind("friend:request:new", (data: Contact & { sender: User; receiver: User }) => {
       setAllContacts((prev) =>
         prev
           ? {
@@ -219,21 +242,21 @@ export function useFriendRequests(currentUserId: string, searchFriendTerm: strin
     });
 
     // bind reqeust accept
-    friendsChannel.bind("friend:request:accepted", (data: any) => {
+    friendsChannel.bind("friend:request:accepted", (data: Contact & { sender: User; receiver: User }) => {
       setAllContacts((prev) =>
         prev
           ? {
               ...prev,
               sentRequest: data.senderId === currentUserId ? prev.sentRequest.filter((req) => req.senderId !== data.senderId) : prev.sentRequest,
               receivedRequest: prev.receivedRequest.filter((req) => req.sender.id !== data.senderId),
-              friends: [...prev.friends, { ...data } as Contact & { sender: User; receiver: User }],
+              friends: [...prev.friends, { ...data }],
             }
           : prev
       );
     });
 
     // bind reqeust cancel
-    friendsChannel.bind("friend:request:canceled", (data: any) => {
+    friendsChannel.bind("friend:request:canceled", (data: Contact & { sender: User; receiver: User }) => {
       setAllContacts((prev) =>
         prev
           ? {
@@ -253,7 +276,7 @@ export function useFriendRequests(currentUserId: string, searchFriendTerm: strin
     });
 
     // bind reqeust removed (unfriend)
-    friendsChannel.bind("friend:removed", (data: any) => {
+    friendsChannel.bind("friend:removed", (data: Contact & { sender: User; receiver: User }) => {
       setAllContacts((prev) =>
         prev
           ? {
@@ -279,7 +302,7 @@ export function useFriendRequests(currentUserId: string, searchFriendTerm: strin
   useEffect(() => {
     const updatedUser = pusher.subscribe("userUpdate");
 
-    updatedUser.bind("user:updated", (data: any) => {
+    updatedUser.bind("user:updated", (data: UpdatedUser) => {
       setAllContacts((prev) =>
         prev
           ? {

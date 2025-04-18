@@ -25,6 +25,7 @@ declare module "next-cloudinary" {
     alt?: string;
     width?: number;
     height?: number;
-    [key: string]: string | number | boolean | undefined;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    [key: string]: any;
   }>;
 }

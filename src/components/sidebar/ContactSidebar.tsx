@@ -38,9 +38,13 @@ const ContactSidebarComponent = ({ currentUser, searchTerm }: ContactSidebarProp
       try {
         const { data } = await axios.post("/api/chat", { userId });
         router.push(`/chat/${data.id}`);
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.log("Error starting chat:", error);
-        toast.error(error.response?.data?.message || "Failed to start conversation!");
+        if (axios.isAxiosError(error)) {
+          toast.error(error.response?.data?.message || "Failed to start conversation!");
+        } else {
+          toast.error("Failed to start conversation!");
+        }
       }
     },
     [router]
@@ -52,9 +56,13 @@ const ContactSidebarComponent = ({ currentUser, searchTerm }: ContactSidebarProp
       try {
         setUnfriendLoading(true);
         await cancelFriendRequest(otherUserId);
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.log("handleFriend error:", error);
-        toast.error(error?.response?.data?.message || "Failed to unfriend user");
+        if (axios.isAxiosError(error)) {
+          toast.error(error.response?.data?.message || "Failed to unfriend user");
+        } else {
+          toast.error("Failed to unfriend user");
+        }
       } finally {
         setUnfriendLoading(false);
       }

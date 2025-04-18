@@ -18,6 +18,7 @@ export const PresenceProvider = ({ children }: { children: ReactNode }) => {
   const setPresence = (userId: string, isOnline: boolean) => {
     setOnlineUsers((prev) => {
       if (!isOnline) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { [userId]: _, ...rest } = prev;
         return rest;
       }

@@ -16,7 +16,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { EditProfile } from "./EditProfile";
 import { Card } from "@/components/ui/card";
 import clsx from "clsx";
-import useChat from "@/hooks/useChat";
 
 interface ProfileDrawerProps {
   trigger: React.ReactNode;
@@ -31,7 +30,6 @@ const ProfileDrawerComponent = ({ isOpen, onClose, trigger, data, isUnfrineded }
   const currentUser = session?.user;
   const pathname = usePathname();
   const router = useRouter();
-  const { setConversations, setCurrentConversation } = useChat(currentUser?.id ?? "");
   const { cancelFriendRequest, isLoading, error, friends, fetchOtherUserFriends, otherUserFriends } = useFriendRequests(currentUser?.id ?? "");
 
   const [showGroupEdit, setShowGroupEdit] = useState(false);
@@ -81,9 +79,13 @@ const ProfileDrawerComponent = ({ isOpen, onClose, trigger, data, isUnfrineded }
       try {
         const { data } = await axios.post("/api/chat", { userId });
         router.push(`/chat/${data.id}`);
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.log("Error starting chat:", error);
-        toast.error(error.response?.data?.message || "Failed to start conversation!");
+        if (axios.isAxiosError(error)) {
+          toast.error(error.response?.data?.message || "Failed to start conversation!");
+        } else {
+          toast.error("An unexpected error occurred!");
+        }
       }
     },
     [router]
@@ -115,9 +117,13 @@ const ProfileDrawerComponent = ({ isOpen, onClose, trigger, data, isUnfrineded }
       }
 
       toast.success(data.isGroup && isGroupAdmin ? "Group deleted successfully!" : "Conversation deleted successfully!");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.log("handleDeleteConversation error:", error);
-      toast.error(error?.response?.data?.message || "Failed to delete conversation");
+      if (axios.isAxiosError(error)) {
+        toast.error(error?.response?.data?.message || "Failed to delete conversation");
+      } else {
+        toast.error("An unexpected error occurred!");
+      }
     } finally {
       setDeleteLoading(false);
       setShowDeleteConfirm(false);
@@ -136,9 +142,13 @@ const ProfileDrawerComponent = ({ isOpen, onClose, trigger, data, isUnfrineded }
       onClose();
       if (pathname === `/chat/${data.id}`) router.push("/chat");
       toast.success("Left group successfully!");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.log("handleLeaveGroup error:", error);
-      toast.error(error.response?.data?.message || "Failed to leave group!");
+      if (axios.isAxiosError(error)) {
+        toast.error(error.response?.data?.message || "Failed to leave group!");
+      } else {
+        toast.error("An unexpected error occurred!");
+      }
     } finally {
       router.refresh();
       setDeleteLoading(false);
@@ -163,9 +173,13 @@ const ProfileDrawerComponent = ({ isOpen, onClose, trigger, data, isUnfrineded }
       } else {
         isUnfrineded();
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.log("handleFriend error:", error);
-      toast.error(error?.response?.data?.message || "Failed to unfriend user");
+      if (axios.isAxiosError(error)) {
+        toast.error(error?.response?.data?.message || "Failed to unfriend user");
+      } else {
+        toast.error("An unexpected error occurred!");
+      }
     } finally {
       setShowUnfriendConfirm(false);
     }

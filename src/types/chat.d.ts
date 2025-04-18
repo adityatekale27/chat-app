@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Conversation as PrismaConversation, Message as PrismaMessage, User as PrismaUser } from "@prisma/client";
 
 declare global {

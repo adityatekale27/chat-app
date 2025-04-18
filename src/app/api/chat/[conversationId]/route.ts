@@ -2,6 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/libs/prismadb";
 import getCurrentUser from "@/actions/getCurrentUser";
 import { pusherServer } from "@/libs/pusher/pusherServer";
+
+type GroupUpdatePayload = {
+  updatedGroup: Pick<Conversation, "id" | "name" | "userIds" | "groupAdminIds">;
+  action: "group_update";
+};
+
+type MemberLeftPayload = {
+  updatedConversation: Pick<Conversation, "id" | "userIds" | "groupAdminIds">;
+  action: "admin_left" | "member_left";
+  userId: string;
+};
+
+type PusherEventPayload = GroupUpdatePayload | MemberLeftPayload | { id: string };
 import * as z from "zod";
 
 const userSelect = {
@@ -32,7 +45,7 @@ const conversationInclude = {
 } as const;
 
 /* Helper function for triggering pusher events */
-async function triggerPusherEvents(userIds: string[], event: string, data: any) {
+async function triggerPusherEvents(userIds: string[], event: string, data: PusherEventPayload) {
   try {
     await Promise.all(userIds.map((userId) => pusherServer.trigger(userId, event, data)));
   } catch (error) {

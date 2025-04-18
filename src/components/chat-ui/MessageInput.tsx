@@ -25,7 +25,7 @@ const MessageInputComponent = ({ message, fileUploading, msgSending, uploadError
               cropping: false,
               showPoweredBy: false,
             }}
-            onSuccess={onFileUpload}
+            onUpload={onFileUpload}
             onError={(error: Error) => {
               onClearError();
               onFileUpload({ error });

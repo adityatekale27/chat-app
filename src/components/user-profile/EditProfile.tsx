@@ -18,7 +18,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
 import clsx from "clsx";
-import { useRouter } from "next/navigation";
 
 // Assume you have a safe User type (without hashedPassword) and a Group type defined:
 interface User {
@@ -228,9 +227,13 @@ export const EditProfile = ({ mode, user, group, onChange, open }: EditProfileOr
 
           toast.success("Group updated successfully");
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.log("editProfile error:", error);
-        toast.error(error?.response?.data?.error || error?.response?.data?.message || "Update failed");
+        if (axios.isAxiosError(error) && error.response?.data) {
+          toast.error(error.response.data.error || error.response.data.message || "Update failed");
+        } else {
+          toast.error("Update failed");
+        }
       } finally {
         onChange();
       }

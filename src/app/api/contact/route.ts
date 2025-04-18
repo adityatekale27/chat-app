@@ -3,6 +3,14 @@ import getCurrentUser from "@/actions/getCurrentUser";
 import prisma from "@/libs/prismadb";
 import { pusherServer } from "@/libs/pusher/pusherServer";
 import { checkRateLimit } from "@/libs/auth/checkRateLimit";
+import { Contact } from "@prisma/client";
+
+type UserSafe = Pick<User, "id" | "name" | "email" | "username" | "bio" | "image" | "isOnline" | "lastOnline">;
+
+type ContactWithUsers = Contact & {
+  sender: UserSafe;
+  receiver: UserSafe;
+};
 
 const FriendSelect = {
   id: true,
@@ -16,7 +24,7 @@ const FriendSelect = {
 };
 
 /* Helper function to trigger pusher events */
-async function triggerPusherEvents(userIds: string[], event: string, data: any) {
+async function triggerPusherEvents(userIds: string[], event: string, data: ContactWithUsers) {
   try {
     await Promise.all(userIds.map((userId) => pusherServer.trigger(userId, event, data)));
   } catch (error) {

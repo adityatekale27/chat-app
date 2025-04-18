@@ -70,7 +70,6 @@ export const CreateGroup = ({ isOpen, onClose, currentUser }: CreateGroupProps) 
   });
 
   const name = watch("name");
-  const groupBio = watch("groupBio");
   const groupAvatar = watch("groupAvatar");
   const members = watch("members");
 

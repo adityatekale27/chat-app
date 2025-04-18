@@ -3,6 +3,35 @@ import prisma from "@/libs/prismadb";
 import { pusherServer } from "@/libs/pusher/pusherServer";
 import { NextRequest, NextResponse } from "next/server";
 
+type UserSafe = Pick<User, "id" | "name" | "email" | "image" | "isOnline" | "lastOnline" | "username" | "bio">;
+
+type MessageWithSenderAndSeen = Message & {
+  sender: UserSafe;
+  seenMessage: UserSafe[];
+};
+
+type ConversationWithRelations = Conversation & {
+  users: UserSafe[];
+  groupAdmins: UserSafe[];
+  groupCreator: UserSafe | null;
+  messages: MessageWithSenderAndSeen[];
+};
+
+type PusherConversationPayload =
+  | ConversationWithRelations
+  | {
+      updatedConversation: Partial<ConversationWithRelations>;
+      action: "admin_left" | "member_left";
+      userId: string;
+    }
+  | {
+      updatedGroup: Partial<ConversationWithRelations>;
+      action: "group_update";
+    }
+  | {
+      id: string; // for "conversation:removed"
+    };
+
 type UserInclude = {
   id: true;
   name: true;
@@ -50,7 +79,7 @@ const conversationInclude = {
 };
 
 /* Helper function for triggering pusher events */
-async function triggerPusherEvents(userIds: string[], event: string, data: any) {
+async function triggerPusherEvents(userIds: string[], event: string, data: PusherConversationPayload) {
   try {
     await Promise.all(userIds.map((userId) => pusherServer.trigger(userId, event, data)));
   } catch (error) {

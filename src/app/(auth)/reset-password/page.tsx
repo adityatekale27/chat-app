@@ -46,6 +46,7 @@ export default function ResetPassword() {
 
     try {
       // Simulate API call
+      console.log(data);
       await new Promise((res) => setTimeout(res, 2000));
       toast.success("Password has been reset!");
 
