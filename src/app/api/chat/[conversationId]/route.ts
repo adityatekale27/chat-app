@@ -189,14 +189,14 @@ export async function PATCH(request: NextRequest) {
 */
 type DeleteAction = "delete" | "leave";
 
-export async function DELETE(request: NextRequest, context: { params: { conversationId: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: { conversationId: string } }) {
   try {
     const currentUser = await getCurrentUser();
     if (!currentUser?.id) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const { conversationId } = await context.params;
+    const { conversationId } = params;
     if (!conversationId) {
       return NextResponse.json({ message: "Conversation ID required" }, { status: 400 });
     }
