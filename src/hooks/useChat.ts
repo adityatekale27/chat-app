@@ -13,7 +13,7 @@ export type SeenResponse = {
 
 interface SeenMessagePayload {
   lastMessageId: string;
-  seenMessage: User[];
+  seenMessage: Message["seenMessage"];
   status: MessageStatus;
 }
 
