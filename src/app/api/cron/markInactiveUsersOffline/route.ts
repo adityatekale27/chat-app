@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/libs/prismadb";
 import { pusherServer } from "@/libs/pusher/pusherServer";
 
-export async function POST() {
+export async function GET() {
   try {
     // Users inactive for more than 2 minutes will be marked offline
     const thresholdTime = new Date(Date.now() - 2 * 60 * 1000);
