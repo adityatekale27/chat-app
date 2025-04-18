@@ -201,7 +201,6 @@ export const CreateGroup = ({ isOpen, onClose, currentUser }: CreateGroupProps) 
             <Label>Select Members *</Label>
             <span className="text-sm text-gray-500">{members.length} selected</span>
           </div>
-          {errors.members && <p className="text-sm text-red-500">{errors.members.message}</p>}
 
           <div className="max-h-60 overflow-y-auto border rounded-lg p-2 space-y-2">
             {friendsList.length === 0 ? (
@@ -229,6 +228,7 @@ export const CreateGroup = ({ isOpen, onClose, currentUser }: CreateGroupProps) 
               ))
             )}
           </div>
+          {errors.members && <p className="text-sm text-red-500">{errors.members.message}</p>}
         </div>
 
         {/* Action Buttons */}

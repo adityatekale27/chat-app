@@ -56,11 +56,14 @@ const userSchema = z.object({
     .max(30)
     .regex(/^[a-zA-Z0-9_]+$/, "Only letters, numbers and underscores allowed")
     .optional(),
-  image: z
-    .string()
-    .url("Invalid image URL")
-    .refine((url) => url.startsWith("https://"), "Must be a secure HTTPS URL")
-    .optional(),
+  image: z.preprocess(
+    (val) => (typeof val === "string" && val.trim() === "" ? undefined : val),
+    z
+      .string()
+      .url("Invalid image URL")
+      .refine((url) => url.startsWith("https://"), "Must be a secure HTTPS URL")
+      .optional()
+  ),
   currentPassword: z.string().optional(),
   newPassword: z
     .string()

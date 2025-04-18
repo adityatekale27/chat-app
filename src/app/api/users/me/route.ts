@@ -34,19 +34,27 @@ const profileSchema = z.object({
     .max(30)
     .regex(/^[a-zA-Z0-9_]+$/, "Only letters, numbers and underscores allowed")
     .optional(),
-  image: z
-    .string()
-    .url("Invalid image URL")
-    .refine((url) => url === "" || url.startsWith("https://"), "Must be a secure HTTPS URL")
-    .optional()
-    .nullable(),
+  image: z.preprocess(
+    (val) => (typeof val === "string" && val.trim() === "" ? undefined : val),
+    z
+      .string()
+      .url("Invalid image URL")
+      .refine((url) => url.startsWith("https://"), "Must be a secure HTTPS URL")
+      .optional()
+  ),
   currentPassword: z.string().optional(),
   newPassword: z
     .string()
-    .min(8, "Password must be at least 8 characters")
-    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
-    .regex(/[0-9]/, "Password must contain at least one number")
-    .optional(),
+    .optional()
+    .refine((val) => val === undefined || val === "" || val.length >= 8, {
+      message: "New Password must be at least 8 characters",
+    })
+    .refine((val) => val === undefined || val === "" || /[A-Z]/.test(val), {
+      message: "New Password must contain at least one uppercase letter",
+    })
+    .refine((val) => val === undefined || val === "" || /[0-9]/.test(val), {
+      message: "New Password must contain at least one number",
+    }),
 });
 
 export async function PATCH(request: NextRequest) {
@@ -60,7 +68,11 @@ export async function PATCH(request: NextRequest) {
     /* Validate the formData using zod */
     const validation = profileSchema.safeParse(formData);
     if (!validation.success) {
-      return NextResponse.json({ message: validation.error.flatten() }, { status: 400 });
+      const errors = validation.error.flatten();
+      const firstFieldError = Object.values(errors.fieldErrors)[0]?.[0];
+      const formError = errors.formErrors?.[0];
+
+      return NextResponse.json({ message: firstFieldError || formError || "Invalid input" }, { status: 400 });
     }
 
     /* Check username already exists or not */

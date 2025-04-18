@@ -75,14 +75,16 @@ const CurrentUserProfileComponent = () => {
       <DialogBox isOpen={isOpen} onClose={() => setIsOpen(false)} trigger={isOpen} dialogTitle="" dialogDescription="">
         <Tabs defaultValue="account" className="w-full">
           {/* Dialog tabs (account and settings) */}
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="account" className="cursor-pointer" disabled={editProfile}>
-              Account
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="cursor-pointer" disabled={editProfile}>
-              Settings
-            </TabsTrigger>
-          </TabsList>
+          {!editProfile && (
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="account" className="cursor-pointer">
+                Account
+              </TabsTrigger>
+              <TabsTrigger value="settings" className="cursor-pointer">
+                Settings
+              </TabsTrigger>
+            </TabsList>
+          )}
 
           {/* Account Tab */}
           <TabsContent value="account">

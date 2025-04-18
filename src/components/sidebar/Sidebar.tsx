@@ -78,7 +78,7 @@ function SidebarComponent({ children, currentUser }: SidebarProps & React.Compon
 
   return (
     <SidebarProvider style={{ "--sidebar-width": "350px" } as React.CSSProperties}>
-      <div className="flex h-screen w-full">
+      <div className="flex h-dvh w-full">
         <div className={`${isMobile && conversationId ? "hidden" : "flex"} ${isMobile ? "flex-col-reverse w-full" : "flex-row"}`}>
           {/* First sidebar (bottom sidebar for mobile) */}
           <Sidebar collapsible="none" className={`dark:bg-black bg-[#979dac] ${isMobile ? "w-full h-15" : "p-1.5 !w-[calc(var(--sidebar-width-icon)_+_10px)]"}`}>

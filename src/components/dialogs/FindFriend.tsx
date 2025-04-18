@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import Image from "next/image";
-import { Dot } from "lucide-react";
 
 import { useEffect, useState } from "react";
 import { useFriendRequests } from "@/hooks/useFriendRequests";
@@ -140,15 +139,10 @@ export function FindFriend({ isOpen, onClose, trigger, currentUser }: FindFriend
 
                               <div className="flex-1 flex items-center justify-between">
                                 {/* user info, name, username and email */}
-                                <div className="flex flex-col items-start max-w-[13rem]">
+                                <div className="flex flex-col items-start max-w-[7rem] md:max-w-[13rem]">
                                   <div className="flex flex-wrap sm:flex-nowrap items-center w-full">
-                                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{user?.name || "User"}</p>
-                                    {user?.username && (
-                                      <>
-                                        <Dot size={18} />
-                                        <p className="text-xs text-gray-500/80 dark:text-gray-200/60 truncate">{user?.username || ""}</p>
-                                      </>
-                                    )}
+                                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate mr-1">{user?.name || "User"}</p>
+                                    {user?.username && <p className="text-xs text-gray-500/80 dark:text-gray-200/60 truncate">~ {user?.username || ""}</p>}
                                   </div>
 
                                   <p className="text-xs text-gray-500/80 dark:text-gray-200/60 truncate max-w-[11rem]">{user?.email || ""}</p>
