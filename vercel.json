@@ -1,0 +1,9 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/markInactiveUsersOffline",
+      "schedule": "*/2 * * * *",
+      "method": "POST"
+    }
+  ]
+}

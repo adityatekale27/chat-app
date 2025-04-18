@@ -1,0 +1,184 @@
+generator client {
+     provider = "prisma-client-js"
+}
+
+datasource db {
+     provider = "mongodb"
+     url = env("DATABASE_URL")
+}
+
+model User {
+     id String @id @default(auto()) @map("_id") @db.ObjectId
+     name String?
+     username String @unique
+     email String @unique
+     image String?
+     bio String?
+     hashedPassword String?
+     emailVerified Boolean?
+     resetToken String?
+     resetTokenExp DateTime?
+
+     isOnline Boolean @default(false)
+     lastOnline DateTime?
+     createdAt DateTime @default(now())
+     updatedAt DateTime @updatedAt
+
+     //realations
+     conversationIds String[] @db.ObjectId
+     conversation Conversation[] @relation(fields: [conversationIds], references: [id])
+
+     seenMessageIds String[] @db.ObjectId
+     seenMessage Message[] @relation("Seen", fields: [seenMessageIds], references: [id])
+
+     SentRequests Contact[] @relation(name: "SentRequests")
+     ReceivedRequests Contact[] @relation(name: "ReceivedRequests")
+
+     groupAdminOfIds String[] @db.ObjectId
+     groupAdminOf Conversation[] @relation("GroupAdmins", fields: [groupAdminOfIds], references: [id])
+     
+     createdGroups Conversation[] @relation("GroupCreator")
+
+     callsMade Call[] @relation("CallerCalls")
+     callsReceived Call[] @relation("CalleeCalls")
+
+     accounts Account[]
+     messages Message[]
+}
+
+model Account {
+     id String @id @default(auto()) @map("_id") @db.ObjectId
+     userId String @db.ObjectId
+     user User @relation(fields: [userId], references: [id])
+
+     type String
+     provider String
+     providerAccountId String
+  
+     refresh_token String?
+     access_token String?
+     expires_at Int?
+     token_type String?
+
+     scope String?
+     id_token String?
+     session_state String?
+
+     createdAt DateTime  @default(now())
+     updatedAt DateTime  @updatedAt
+     deletedAt DateTime?
+
+     @@unique([provider, providerAccountId])
+}
+
+model Call {
+     id String @id @default(auto()) @map("_id") @db.ObjectId
+     type CallType @default(AUDIO)
+     status CallStatus @default(ONGOING)
+     startedAt DateTime @default(now())
+     endedAt DateTime?
+     
+     conversationId String @db.ObjectId
+     conversation Conversation @relation(fields: [conversationId], references: [id])
+
+     callerId String @db.ObjectId
+     caller User @relation("CallerCalls", fields: [callerId], references: [id])
+
+     calleeId String @db.ObjectId
+     callee User @relation("CalleeCalls",fields: [calleeId], references: [id])
+
+     @@index([conversationId])
+}
+
+enum CallType {
+     AUDIO
+     VIDEO
+}
+
+enum CallStatus {
+     ONGOING
+     MISSED
+     ENDED
+}
+
+model Conversation {
+     id String @id @default(auto()) @map("_id") @db.ObjectId
+     createdAt DateTime @default(now())
+     updatedAt DateTime @updatedAt
+     lastMessageAt DateTime?
+
+     //group related things
+     isGroup Boolean @default(false)
+     name String?
+     groupBio String?
+     groupAvatar String?
+
+     //relations
+     groupAdminIds String[] @db.ObjectId
+     groupAdmins User[] @relation("GroupAdmins", fields: [groupAdminIds], references: [id])
+     
+     groupCreatorId String? @db.ObjectId
+     groupCreator User? @relation("GroupCreator", fields: [groupCreatorId], references: [id])
+
+     userIds String[] @db.ObjectId
+     users User[] @relation(fields: [userIds], references: [id])
+
+     messagesIds String[] @db.ObjectId
+     messages Message[]
+
+     calls Call[]
+
+     @@index([isGroup])
+}
+
+model Message {
+     id String @id @default(auto()) @map("_id") @db.ObjectId
+     createdAt DateTime @default(now())
+     updatedAt DateTime @updatedAt
+
+     //message body related things
+     text String?
+     imageUrl String?
+     fileUrl String?
+     status MessageStatus @default(SENT)
+
+     //relations
+     senderId String @db.ObjectId
+     sender User @relation(fields: [senderId], references: [id])
+
+     conversationId String @db.ObjectId
+     conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+     seenMessageIds String[] @db.ObjectId
+     seenMessage User[] @relation("Seen", fields: [seenMessageIds], references: [id])
+
+     @@index([conversationId])
+}
+
+enum MessageStatus {
+  SENT
+  SEEN
+}
+
+model Contact {
+    id String @id @default(auto()) @map("_id") @db.ObjectId
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    
+    //relations
+    senderId String @db.ObjectId
+    sender User @relation("SentRequests", fields: [senderId], references: [id])
+
+    receiverId String @db.ObjectId
+    receiver User @relation("ReceivedRequests", fields: [receiverId], references: [id])
+
+    status ContactStatus @default(PENDING)
+
+    @@unique([senderId, receiverId])
+}
+
+enum ContactStatus {
+    PENDING
+    ACCEPTED
+    BLOCKED
+}
