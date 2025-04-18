@@ -1,0 +1,15 @@
+name: Mark Inactive Users
+
+on:
+  schedule:
+    - cron: "*/2 * * * *"  # every 2 minutes
+  workflow_dispatch:      # allows manual trigger from GitHub Actions UI
+
+jobs:
+  ping-api:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Call Vercel API route
+        run: |
+          curl -s -X GET "https://chat-app-ar.vercel.app/api/cron/markInactiveUsersOffline"
