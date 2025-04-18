@@ -29,14 +29,14 @@ const conversationInclude = {
 /*
   GET method return all the messsages in perticular conversation
 */
-export async function GET(request: Request, context: { params: { conversationId: string } }) {
+export async function GET(request: Request, { params }: { params: { conversationId: string } }) {
   try {
     const currentUser = await getCurrentUser();
     if (!currentUser) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const { conversationId } = await context.params;
+    const { conversationId } = params;
     if (!conversationId) {
       return NextResponse.json({ message: "Conversation ID is required" }, { status: 400 });
     }
