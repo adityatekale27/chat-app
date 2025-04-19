@@ -136,7 +136,7 @@ function SidebarComponent({ children, currentUser }: SidebarProps & React.Compon
 
           {/* Second sidebar */}
           <Sidebar collapsible="none" className={`dark:bg-black bg-[#979dac]  ${isMobile ? "w-full" : "p-1.5 flex-1"}`}>
-            <div className={`dark:bg-[#212121] dark:text-slate-100 bg-[#fffbfe] min-h-full max-h-[calc(100vh-60px)] md:rounded-lg`}>
+            <div className={`dark:bg-[#212121] dark:text-slate-100 bg-[#fffbfe] min-h-full max-h-[calc(100vh-140px)] md:rounded-lg`}>
               <SidebarHeader className="max-h-15 border-b border-gray-500/50 p-3 flex flex-row-reverse items-center gap-1">
                 {/* Show user profile image only on mobile */}
                 {isMobile && (
@@ -167,7 +167,7 @@ function SidebarComponent({ children, currentUser }: SidebarProps & React.Compon
               </SidebarHeader>
 
               {/* Display ChatSidebar or ContactSidebar based on pathname */}
-              <SidebarContent className="pb-5 max-h-[calc(100vh-100px)]  md:max-h-[calc(100vh-56px)]">
+              <SidebarContent className="pb-5 max-h-[calc(100vh-155px)] md:max-h-[calc(100vh-56px)]">
                 <SidebarGroup className="px-2 overflow-y-auto">
                   <SidebarGroupContent>
                     {pathname === "/contact" ? (
@@ -185,7 +185,7 @@ function SidebarComponent({ children, currentUser }: SidebarProps & React.Compon
         {/* Main content area (display conversation or empty state) */}
         {(!isMobile || (isMobile && conversationId)) && (
           <SidebarInset className={`dark:bg-black bg-[#979dac] h-screen md:p-1.5`}>
-            <div className={`dark:bg-[#212121] dark:text-slate-50 bg-[#fffbfe] text-black h-full ${!isMobile && "rounded-lg"}`}>
+            <div className={`dark:bg-[#212121] dark:text-slate-50 bg-[#fffbfe] text-black h-full md:rounded-lg`}>
               <main className="overflow-hidden h-full flex flex-col">{children}</main>
             </div>
           </SidebarInset>

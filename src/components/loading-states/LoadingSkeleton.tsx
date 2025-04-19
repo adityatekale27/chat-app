@@ -16,7 +16,7 @@ const UserBoxSkeleton = ({ freq }: { freq: number }) => {
 
 const ChatSkeleton = () => {
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="h-dvh flex flex-col">
       {/* Header Skeleton */}
       <div className="p-4 border-b border-b-gray-500/50 bg-gray-100 dark:bg-[#212529] flex justify-between items-center w-full rounded-t-lg">
         <div className="flex items-center space-x-3">
@@ -34,18 +34,18 @@ const ChatSkeleton = () => {
       </div>
 
       {/* Messages Skeleton */}
-      <div className="flex-1 flex flex-col p-4 overflow-y-auto justify-end">
+      <div className="flex-1 flex flex-col overflow-y-auto justify-end mb-4">
         <div className="space-y-4">
           {[...Array(2)].map((_, index) => (
             <div key={index}>
-              <div className="flex flex-col gap-5 mx-4">
+              <div className="flex flex-col gap-6 mx-4">
                 <div className="flex flex-col items-end">
-                  <Skeleton className="w-60 h-5 bg-gray-400/40 rounded-full mb-2" />
-                  <Skeleton className="w-80 h-5 bg-gray-400/40 rounded-full" />
+                  <Skeleton className="w-40 md:w-60 h-4 md:h-5 bg-gray-400/40 rounded-full mb-2" />
+                  <Skeleton className="w-60 md:w-80 h-4 md:h-5 bg-gray-400/40 rounded-full" />
                 </div>
                 <div className="flex flex-col items-start">
-                  <Skeleton className="w-60 h-5 bg-gray-400/40 rounded-full mb-2" />
-                  <Skeleton className="w-80 h-5 bg-gray-400/40 rounded-full" />
+                  <Skeleton className="w-40 md:w-60 h-4 md:h-5 bg-gray-400/40 rounded-full mb-2" />
+                  <Skeleton className="w-60 md:w-80 h-4 md:h-5 bg-gray-400/40 rounded-full" />
                 </div>
               </div>
             </div>
@@ -54,7 +54,7 @@ const ChatSkeleton = () => {
       </div>
 
       {/* Footer Skeleton */}
-      <div className="py-3 px-2 border-t flex items-center space-x-2 justify-evenly mb-4">
+      <div className="py-3 px-2 border-t flex items-center space-x-2 justify-evenly md:mb-4">
         <Skeleton className="w-9 h-9 rounded-full bg-gray-400/40" />
         <Skeleton className="flex-1 h-9 rounded-full bg-gray-400/40" />
         <Skeleton className="w-9 h-9 rounded-full bg-gray-400/40" />

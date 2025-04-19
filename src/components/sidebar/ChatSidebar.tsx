@@ -122,7 +122,6 @@ export const ChatSidebar = ({ currentUser, searchTerm }: ChatSidebarProps) => {
           <UserBoxSkeleton freq={8} />
         </div>
       ) : conversations.length === 0 ? (
-        // || conversations.some((c) => c.messages.length === 0)
         <p className="text-center dark:text-slate-50/80 text-black/60 py-4">No conversations to show</p>
       ) : (
         <ul>

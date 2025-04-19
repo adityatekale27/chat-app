@@ -5,6 +5,9 @@ import "./globals.css";
 import AuthProvider from "@/contexts/AuthContext";
 import ThemeProvider from "@/contexts/ThemeContext";
 import ToasterContext from "@/contexts/ToasterContext";
+import { PresenceProvider } from "@/contexts/PresenceContext";
+import PresenceManager from "@/components/others/PresenceManager";
+import getCurrentUser from "@/actions/getCurrentUser";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -21,20 +24,25 @@ export const metadata: Metadata = {
   description: "Real-time web chat app",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const currentUser = await getCurrentUser();
+
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <ThemeProvider>
-          <AuthProvider>
-            <ToasterContext />
-            {children}
-          </AuthProvider>
-        </ThemeProvider>
+        <PresenceProvider>
+          <ThemeProvider>
+            <AuthProvider>
+              {currentUser && <PresenceManager currentUser={currentUser} />}
+              <ToasterContext />
+              {children}
+            </AuthProvider>
+          </ThemeProvider>
+        </PresenceProvider>
       </body>
     </html>
   );
