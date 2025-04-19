@@ -10,14 +10,15 @@ import { ChatHeader } from "@/components/chat-ui/ChatHeader";
 import { MessageList } from "@/components/chat-ui/MessageList";
 import { MessageInput } from "@/components/chat-ui/MessageInput";
 import { ChatSkeleton } from "@/components/loading-states/LoadingSkeleton";
+import { useFriendRequests } from "@/hooks/useFriendRequests";
 
 const ChatPage = () => {
   const { data: session } = useSession();
   const currentUser = session?.user;
   const { conversationId } = useParams();
+  const { friends } = useFriendRequests(currentUser?.id ?? "");
   const { fetchMessages, messages, sendMessage, deleteMessage, currentConversation, fetchConversationById, messagesLoading, seenMessages } = useChat(currentUser?.id || "");
 
-  const [isUnfriended, setIsUnfriended] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [fileUploading, setFileUploading] = useState(false);
   const [msgSending, setMsgSending] = useState(false);
@@ -66,7 +67,7 @@ const ChatPage = () => {
       await sendMessage(currentConversation.id as string, message);
     } catch (error) {
       toast.error("Failed to send message");
-      console.log("handleSendMessage error:", error);
+      console.error("handleSendMessage error:", error);
     } finally {
       setMessage("");
       setMsgSending(false);
@@ -83,7 +84,7 @@ const ChatPage = () => {
         toast.success("Message deleted!");
       } catch (error) {
         toast.error("Failed to delete message");
-        console.log("handleDeleteMessage error", error);
+        console.error("handleDeleteMessage error", error);
       } finally {
         setMsgDeleting(false);
       }
@@ -119,7 +120,7 @@ const ChatPage = () => {
 
         toast.success("File uploaded!");
       } catch (error) {
-        console.log("Failed to upload file:", error);
+        console.error("Failed to upload file:", error);
         setUploadError(error instanceof Error ? error.message : "Upload failed");
       } finally {
         setFileUploading(false);
@@ -128,13 +129,33 @@ const ChatPage = () => {
     [currentConversation?.id, sendMessage]
   );
 
+  /**
+   * 1:1 conversation: Check if other user is still a friend,
+   * for group conversation check current user is in the group or not,
+   */
+  const canSendMessages = useMemo(() => {
+    if (!currentConversation || !currentUser) return false;
+
+    // for 1:1
+    if (!currentConversation.isGroup) {
+      const isStillFrined = friends.some(
+        (friend) => (friend.sender.id === currentUser?.id && friend.receiver.id === otherUser?.id) || (friend.receiver.id === currentUser?.id && friend.sender.id === otherUser?.id)
+      );
+      return isStillFrined;
+    }
+
+    // for group
+    const isStillInGroup = currentConversation.users.some((user) => user.id === currentUser.id);
+    return isStillInGroup;
+  }, [currentConversation, currentUser, friends, otherUser?.id]);
+
   /* Handle loading and empty states */
   if (messagesLoading) return <ChatSkeleton />;
   if (!currentConversation) return <EmptyState />;
 
   return (
     <div className="h-[100dvh] w-full flex flex-col rounded-lg">
-      <ChatHeader conversation={currentConversation} otherUser={otherUser} unfriended={() => setIsUnfriended(true)} />
+      <ChatHeader conversation={currentConversation} otherUser={otherUser} />
 
       <div className="flex-1 flex flex-col-reverse overflow-y-auto px-3 sm:px-4 py-5 sm:py-5 bg-[#fffbfe] dark:bg-[#171717]">
         {messages.length > 0 ? (
@@ -151,10 +172,10 @@ const ChatPage = () => {
         )}
       </div>
 
-      {isUnfriended ? (
+      {!canSendMessages ? (
         <div className=" md:mb-3 border-t border-t-gray-500/50 flex items-center justify-between bg-[#E5E7EB]/40 dark:bg-[#171717] rounded-b-lg shrink-0">
           <div className="mx-auto my-4 text-center max-w-xs md:max-w-lg rounded-lg bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-300 px-4 py-2 text-sm sm:text-base shadow-sm border border-red-200 dark:border-red-700">
-            {"You are no longer friends. You can't send messages in this chat."}
+            {`You are no longer ${currentConversation.isGroup ? "part of group" : "friends"}. You can't send messages in this chat.`}
           </div>
         </div>
       ) : (

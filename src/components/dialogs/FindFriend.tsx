@@ -15,6 +15,8 @@ import { useAllUsers } from "@/hooks/useAllUsers";
 import { UserBoxSkeleton } from "../loading-states/LoadingSkeleton";
 import { FormError } from "../auth/FormError";
 import clsx from "clsx";
+import { useIsMobile } from "@/hooks/useMobile";
+import { UserCheck, UserX } from "lucide-react";
 
 interface FindFriendProps {
   trigger: React.ReactNode;
@@ -24,6 +26,7 @@ interface FindFriendProps {
 }
 
 export function FindFriend({ isOpen, onClose, trigger, currentUser }: FindFriendProps) {
+  const isMobile = useIsMobile()
   const [searchFriendTerm, setSearchFriendTerm] = useState("");
   const [showRequestNumbers, setShowRequestNumbers] = useState(false);
   const [disableSendRequest, setDisableSendRequest] = useState(false);
@@ -202,18 +205,18 @@ export function FindFriend({ isOpen, onClose, trigger, currentUser }: FindFriend
                         <div className="flex-1 flex items-center justify-between">
                           <div className="flex flex-col items-start">
                             <p className="text-sm font-medium text-gray-900 dark:text-white">{user.sender?.name || "User"}</p>
-                            <p className="text-xs text-gray-500/80 dark:text-gray-200/60">{user.sender?.email || ""}</p>
+                            <p className="text-xs text-gray-500/80 dark:text-gray-200/60">{user.sender?.username || ""}</p>
                           </div>
-                          <div>
+                          <div className="flex">
                             <button
                               className="px-3 py-1 mr-2 text-sm font-medium bg-green-600 text-white rounded-md hover:bg-green-900 hover:cursor-pointer"
                               onClick={() => acceptFriendRequest(user.sender?.id)}>
-                              Accept
+                              {isMobile ? <UserCheck size={20}/> : "Accept"}
                             </button>
                             <button
                               className="px-3 py-1 text-sm font-medium text-white hover:bg-slate-950 bg-slate-700 rounded-md transition hover:cursor-pointer"
                               onClick={() => cancelFriendRequest(user.sender?.id)}>
-                              Cancel
+                              {isMobile ? <UserX size={20}/> : "Cancel"}
                             </button>
                           </div>
                         </div>

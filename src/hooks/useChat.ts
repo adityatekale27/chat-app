@@ -5,6 +5,7 @@ import axios from "axios";
 import { MessageStatus, Prisma } from "@prisma/client";
 import { getPusherClient } from "@/libs/pusher/pusherClient";
 import { ConversationWithMessages } from "@/types/chat";
+import { useRouter } from "next/navigation";
 
 export type SeenResponse = {
   lastMessageId: string;
@@ -36,6 +37,7 @@ type Conversation = Prisma.ConversationGetPayload<{
 
 export const useChat = (currentUserId: string) => {
   const pusherClient = getPusherClient();
+  const router = useRouter();
 
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
@@ -46,17 +48,17 @@ export const useChat = (currentUserId: string) => {
 
   // fetch all conversations on chat sidebar mount
   const fetchConversations = useCallback(async (searchTerm = "") => {
-    setLoading(true);
-    setError(null);
-
     try {
+      setLoading(true);
+      setError(null);
+
       const { data } = await axios.get(searchTerm ? `/api/chat?search=${encodeURIComponent(searchTerm)}` : "/api/chat");
       setConversations(data);
-    } catch (err: unknown) {
-      if (axios.isCancel(err)) return;
-      console.log("fetchConversations error:", err);
-      if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.message || "Failed to fetch conversations");
+    } catch (error: unknown) {
+      if (axios.isCancel(error)) return;
+      console.error("fetchConversations error:", error);
+      if (axios.isAxiosError(error)) {
+        setError(error.response?.data?.message || "Failed to fetch conversations");
       } else {
         setError("An unexpected error occurred");
       }
@@ -66,40 +68,44 @@ export const useChat = (currentUserId: string) => {
   }, []);
 
   // Fetch conversation by ID
-  const fetchConversationById = useCallback(async (conversationId: string) => {
-    setMessagesLoading(true);
-    setError(null);
+  const fetchConversationById = useCallback(
+    async (conversationId: string) => {
+      try {
+        setMessagesLoading(true);
+        setError(null);
 
-    try {
-      const { data } = await axios.get(`/api/chat/${conversationId}`);
-      setCurrentConversation(data);
-    } catch (error: unknown) {
-      if (axios.isAxiosError(error)) {
-        setError(error.response?.data?.message || "Failed to fetch conversation");
-      } else {
-        setError("An unexpected error occurred");
+        const { data } = await axios.get(`/api/chat/${conversationId}`);
+        setCurrentConversation(data);
+      } catch (error: unknown) {
+        console.error("fetchConversationById error:", error);
+        if (axios.isAxiosError(error)) {
+          setError(error.response?.data?.message || "Failed to fetch conversation");
+        } else {
+          setError("An unexpected error occurred");
+        }
+        router.push("/");
+      } finally {
+        setMessagesLoading(false);
       }
-      console.log("fetchConversationById error:", error);
-    } finally {
-      setMessagesLoading(false);
-    }
-  }, []);
+    },
+    [router]
+  );
 
   // fetch messages from current conversation
   const fetchMessages = useCallback(async (conversationId: string) => {
-    setLoading(true);
-    setError(null);
-
     try {
+      setLoading(true);
+      setError(null);
+
       const { data } = await axios.get(`/api/message/${conversationId}`);
       setMessages(data);
-    } catch (err: unknown) {
-      if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.message || "Failed to fetch messages");
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        setError(error.response?.data?.message || "Failed to fetch messages");
       } else {
         setError("An unexpected error occurred");
       }
-      console.log("fetchMessages error:", err);
+      console.error("fetchMessages error:", error);
     } finally {
       setLoading(false);
     }
@@ -116,7 +122,7 @@ export const useChat = (currentUserId: string) => {
     }
 
     try {
-      const { data }: { data: Message } = await axios.post("/api/message", {
+      const { data } = await axios.post<Message>("/api/message", {
         message,
         image,
         conversationId,
@@ -124,13 +130,13 @@ export const useChat = (currentUserId: string) => {
 
       setMessages((prev) => [...prev, data]);
       return data;
-    } catch (err: unknown) {
-      if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.message || "Failed to send message");
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        setError(error.response?.data?.message || "Failed to send message");
       } else {
         setError("An unexpected error occurred");
       }
-      console.log("sendMessage error:", err);
+      console.error("sendMessage error:", error);
       return null;
     } finally {
       setLoading(false);
@@ -148,7 +154,7 @@ export const useChat = (currentUserId: string) => {
       } else {
         setError("An unexpected error occurred");
       }
-      console.log("Error deleting message:", error);
+      console.error("Error deleting message:", error);
       throw error;
     }
   }, []);
@@ -159,7 +165,7 @@ export const useChat = (currentUserId: string) => {
       const { data } = await axios.post<SeenMessagePayload>(`/api/chat/${conversationId}/seen`, { conversationId });
       setMessages((prev) => prev.map((msg) => (msg.id === data.lastMessageId ? { ...msg, status: data.status, seenMessage: data.seenMessage } : msg)));
     } catch (error) {
-      console.log("seenMessages error:", error);
+      console.error("seenMessages error:", error);
     }
   }, []);
 

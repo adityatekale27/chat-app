@@ -22,10 +22,9 @@ interface ProfileDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   data: ConversationWithMessages;
-  isUnfrineded: () => void;
 }
 
-const ProfileDrawerComponent = ({ isOpen, onClose, trigger, data, isUnfrineded }: ProfileDrawerProps) => {
+const ProfileDrawerComponent = ({ isOpen, onClose, trigger, data }: ProfileDrawerProps) => {
   const { data: session } = useSession();
   const currentUser = session?.user;
   const pathname = usePathname();
@@ -80,7 +79,7 @@ const ProfileDrawerComponent = ({ isOpen, onClose, trigger, data, isUnfrineded }
         const { data } = await axios.post("/api/chat", { userId });
         router.push(`/chat/${data.id}`);
       } catch (error: unknown) {
-        console.log("Error starting chat:", error);
+        console.error("Error starting chat:", error);
         if (axios.isAxiosError(error)) {
           toast.error(error.response?.data?.message || "Failed to start conversation!");
         } else {
@@ -112,13 +111,10 @@ const ProfileDrawerComponent = ({ isOpen, onClose, trigger, data, isUnfrineded }
       const actionParams = data.isGroup && isGroupAdmin ? "?action=delete" : "";
       await axios.delete(`/api/chat/${data.id}${actionParams}`);
 
-      if (pathname === `/chat/${data.id}` || pathname === `/api/chat/${data.id}${actionParams}`) {
-        router.push("/chat");
-      }
-
       toast.success(data.isGroup && isGroupAdmin ? "Group deleted successfully!" : "Conversation deleted successfully!");
+      if (pathname === `/chat/${data.id}`) router.push("/");
     } catch (error: unknown) {
-      console.log("handleDeleteConversation error:", error);
+      console.error("handleDeleteConversation error:", error);
       if (axios.isAxiosError(error)) {
         toast.error(error?.response?.data?.message || "Failed to delete conversation");
       } else {
@@ -140,17 +136,16 @@ const ProfileDrawerComponent = ({ isOpen, onClose, trigger, data, isUnfrineded }
       await axios.delete(`/api/chat/${data.id}?action=leave`);
 
       onClose();
-      if (pathname === `/chat/${data.id}`) router.push("/chat");
       toast.success("Left group successfully!");
+      if (pathname === `/chat/${data.id}`) router.push("/");
     } catch (error: unknown) {
-      console.log("handleLeaveGroup error:", error);
+      console.error("handleLeaveGroup error:", error);
       if (axios.isAxiosError(error)) {
         toast.error(error.response?.data?.message || "Failed to leave group!");
       } else {
         toast.error("An unexpected error occurred!");
       }
     } finally {
-      router.refresh();
       setDeleteLoading(false);
       setShowLeaveGroupConfirm(false);
     }
@@ -167,14 +162,11 @@ const ProfileDrawerComponent = ({ isOpen, onClose, trigger, data, isUnfrineded }
       // if no messages, remove conversation
       if (!hasMessages) {
         await axios.delete(`/api/chat/${data.id}`);
-
         onClose();
-        router.push("/chat");
-      } else {
-        isUnfrineded();
+        router.push("/");
       }
     } catch (error: unknown) {
-      console.log("handleFriend error:", error);
+      console.error("handleFriend error:", error);
       if (axios.isAxiosError(error)) {
         toast.error(error?.response?.data?.message || "Failed to unfriend user");
       } else {
@@ -183,7 +175,7 @@ const ProfileDrawerComponent = ({ isOpen, onClose, trigger, data, isUnfrineded }
     } finally {
       setShowUnfriendConfirm(false);
     }
-  }, [cancelFriendRequest, data.id, data.messagesIds.length, isUnfrineded, onClose, otherUser?.id, router]);
+  }, [cancelFriendRequest, data.id, data.messagesIds.length, onClose, otherUser?.id, router]);
 
   return (
     <>
@@ -437,7 +429,7 @@ const ProfileDrawerComponent = ({ isOpen, onClose, trigger, data, isUnfrineded }
         onConfirm={handleDeleteConversation}
       />
 
-      {/* leave group conversation confirmation dialog */}
+      {/* Leave group conversation confirmation dialog */}
       <ConfirmationDialog
         open={showLeaveGroupConfirm}
         loading={deleteLoading}
@@ -447,7 +439,7 @@ const ProfileDrawerComponent = ({ isOpen, onClose, trigger, data, isUnfrineded }
         onConfirm={handleLeaveGroup}
       />
 
-      {/* unfriend confirmation dialog */}
+      {/* Unfriend confirmation dialog */}
       <ConfirmationDialog
         open={showUnfriendConfirm}
         loading={isLoading}

@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { ChevronLeft, Ellipsis } from "lucide-react";
+import { ChevronLeft, Ellipsis, Phone, Video } from "lucide-react";
 import { ChatHeaderProps } from "@/types/chat";
 import React, { useState } from "react";
 import { ProfileDrawer } from "../user-profile/ProfileDrawer";
@@ -49,7 +49,7 @@ function formatLastOnline(date: Date): string {
   });
 }
 
-const ChatHeaderComponent = ({ conversation, otherUser, unfriended }: ChatHeaderProps) => {
+const ChatHeaderComponent = ({ conversation, otherUser }: ChatHeaderProps) => {
   const router = useRouter();
   const { onlineUsers } = usePresenceContext();
   const [openProfile, setOpenProfile] = useState(false);
@@ -87,17 +87,17 @@ const ChatHeaderComponent = ({ conversation, otherUser, unfriended }: ChatHeader
 
       {/* Audio and video call buttons and conversation options */}
       <div className="flex items-center gap-2  shrink-0">
-        {/* <ToolTip content="Audio call">
+        <ToolTip content="Audio call">
           <div className="hover:bg-gray-500/50 p-1.5 rounded-lg cursor-pointer">
-            <Phone size={16} onClick={() => startCall("AUDIO")} />
+            <Phone size={16} onClick={() => {}} />
           </div>
         </ToolTip>
 
         <ToolTip content="Video call">
           <div className="hover:bg-gray-500/50 p-1.5 rounded-lg cursor-pointer">
-            <Video size={19} onClick={() => startCall("VIDEO")} />
+            <Video size={19} onClick={() => {}} />
           </div>
-        </ToolTip> */}
+        </ToolTip>
 
         <ToolTip content="Options">
           <div onClick={() => setOpenProfile(true)} className="hover:bg-gray-500/50 p-1 rounded-lg cursor-pointer">
@@ -107,14 +107,13 @@ const ChatHeaderComponent = ({ conversation, otherUser, unfriended }: ChatHeader
       </div>
 
       {/* Profile drawer */}
-      {openProfile && otherUser && <ProfileDrawer isOpen={openProfile} trigger={openProfile} onClose={() => setOpenProfile(false)} data={conversation} isUnfrineded={unfriended} />}
+      {openProfile && otherUser && <ProfileDrawer isOpen={openProfile} trigger={openProfile} onClose={() => setOpenProfile(false)} data={conversation} />}
     </div>
   );
 };
 
 export const ChatHeader = React.memo(ChatHeaderComponent, (prevProps, nextProps) => {
   return (
-    prevProps.unfriended === nextProps.unfriended &&
     prevProps.conversation.id === nextProps.conversation.id &&
     prevProps.conversation.updatedAt === nextProps.conversation.updatedAt &&
     prevProps.otherUser?.id === nextProps.otherUser?.id &&

@@ -65,7 +65,6 @@ export interface MessageInputProps {
 }
 
 export interface ChatHeaderProps {
-  unfriended: () => void;
   conversation: ConversationWithMessages;
   otherUser?: User;
 }
