@@ -46,7 +46,9 @@ export const useChat = (currentUserId: string) => {
   const [currentConversation, setCurrentConversation] = useState<ConversationWithMessages | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
 
-  // fetch all conversations on chat sidebar mount
+  /**
+   * Fetches all conversations for the current user (optionally filtered by a search term).
+   */
   const fetchConversations = useCallback(async (searchTerm = "") => {
     try {
       setLoading(true);
@@ -67,7 +69,9 @@ export const useChat = (currentUserId: string) => {
     }
   }, []);
 
-  // Fetch conversation by ID
+  /**
+   * Fetches a specific conversation by ID
+   */
   const fetchConversationById = useCallback(
     async (conversationId: string) => {
       try {
@@ -91,7 +95,9 @@ export const useChat = (currentUserId: string) => {
     [router]
   );
 
-  // fetch messages from current conversation
+  /**
+   * Fetches messages for a specific conversation
+   */
   const fetchMessages = useCallback(async (conversationId: string) => {
     try {
       setLoading(true);
@@ -111,9 +117,10 @@ export const useChat = (currentUserId: string) => {
     }
   }, []);
 
-  // send a message
+  /**
+   * Sends a new message (text, image) in conversation
+   */
   const sendMessage = useCallback(async (conversationId: string, message: string, image?: string) => {
-    setLoading(true);
     setError(null);
 
     if ((!message && !image) || !conversationId) {
@@ -122,6 +129,7 @@ export const useChat = (currentUserId: string) => {
     }
 
     try {
+      setLoading(true);
       const { data } = await axios.post<Message>("/api/message", {
         message,
         image,
@@ -143,7 +151,9 @@ export const useChat = (currentUserId: string) => {
     }
   }, []);
 
-  // delete a message
+  /**
+   * Deletes a specific message froma conversation
+   */
   const deleteMessage = useCallback(async (conversationId: string, messageId: string) => {
     try {
       setError(null);
@@ -159,7 +169,9 @@ export const useChat = (currentUserId: string) => {
     }
   }, []);
 
-  // Mark messages as seen
+  /**
+   * Marks messages in a conversation as seen by the current user
+   */
   const seenMessages = useCallback(async (conversationId: string) => {
     try {
       const { data } = await axios.post<SeenMessagePayload>(`/api/chat/${conversationId}/seen`, { conversationId });
@@ -170,7 +182,9 @@ export const useChat = (currentUserId: string) => {
   }, []);
 
   /**
-   * Subscribe pusher events for conversation list
+   * Subscribe pusher events on the user channel (current user id),
+   * handles conversation remove, update, new and lastMessage updates
+   * in the conversaiton list
    */
   useEffect(() => {
     if (!currentUserId) return;
@@ -204,23 +218,19 @@ export const useChat = (currentUserId: string) => {
 
     // bind last message update in conversation
     userChannel.bind("conversation:lastMessage", (updated: { id: string; message: Message[]; lastMessageAt: Date }) => {
-      setConversations((prev) => {
-        const index = prev.findIndex((conv) => conv.id === updated.id);
-        if (index === -1) return prev;
-
-        const newList = [...prev];
-        newList[index] = {
-          ...newList[index],
-          messages: updated.message,
-          lastMessageAt: updated.lastMessageAt,
-        };
-
-        return newList.sort((a, b) => {
-          const aTime = new Date(a.lastMessageAt || 0).getTime();
-          const bTime = new Date(b.lastMessageAt || 0).getTime();
-          return bTime - aTime;
-        });
-      });
+      setConversations((prev) =>
+        prev
+          .map((conv) =>
+            conv.id === updated.id
+              ? {
+                  ...conv,
+                  messages: updated.message,
+                  lastMessageAt: updated.lastMessageAt,
+                }
+              : conv
+          )
+          .sort((a, b) => new Date(b.lastMessageAt || 0).getTime() - new Date(a.lastMessageAt || 0).getTime())
+      );
     });
 
     return () => {
@@ -230,7 +240,8 @@ export const useChat = (currentUserId: string) => {
   }, [currentUserId, pusherClient]);
 
   /**
-   * Subscribe to currentConversation message pusher events
+   * Subscribe to pusher events from currently opened conversation,
+   * handle new, deleted and seen message update
    */
   useEffect(() => {
     if (!currentConversation?.id) return;
@@ -248,22 +259,8 @@ export const useChat = (currentUserId: string) => {
 
     // bind to seen message
     channel.bind("message:seen", (data: SeenMessagePayload) => {
-      setMessages((prevMsg) =>
-        prevMsg.map((msg) => {
-          // If it's the sender's message, and it's older or equal to the last seen one
-          const isFromCurrentUser = msg.sender.id === currentUserId;
-          const shouldUpdate = isFromCurrentUser && msg.id <= data.lastMessageId; // you can tweak this condition to be stricter if needed
-
-          if (shouldUpdate) {
-            return {
-              ...msg,
-              status: data.status,
-              seenMessage: data.seenMessage,
-            };
-          }
-
-          return msg;
-        })
+      setMessages((prev) =>
+        prev.map((msg) => (msg.sender.id === currentUserId && msg.id <= data.lastMessageId ? { ...msg, status: data.status, seenMessage: data.seenMessage } : msg))
       );
     });
 

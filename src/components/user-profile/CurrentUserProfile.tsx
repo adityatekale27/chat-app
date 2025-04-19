@@ -30,26 +30,21 @@ const CurrentUserProfileComponent = () => {
   const [deleteConfimation, setDeleteConfirmation] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
 
-  /**
-   * Memoized values
-   */
-  // get user's joining date
+  /* Memoized: get user's joining date */
   const userJoinDate = useMemo(() => format(new Date(user?.createdAt || new Date()), "PP"), [user?.createdAt]);
 
-  // get all friends of current user
+  /* Memoized: get all friends of current user */
   const friendsList = useMemo(() => {
     if (!user || !friends.length) return [];
     return friends.map((friend) => (friend.sender.id === user.id ? friend.receiver : friend.sender));
   }, [friends, user]);
 
-  // display at most 4 frineds (show all with button)
+  /* Memoized: display at most 4 frineds (show all with button) */
   const displayedFriends = useMemo(() => {
     return friendsList.slice(0, 4);
   }, [friendsList]);
 
-  /**
-   * Handler to delete accound permanently
-   */
+  /* Handles the deletion of the current user's account */
   const handleAccountDelete = useCallback(async () => {
     try {
       setLoading(true);
@@ -208,7 +203,7 @@ const CurrentUserProfileComponent = () => {
         </Tabs>
       </DialogBox>
 
-      {/* Account delte confirmation dialog */}
+      {/* Confirmation dialog for deleting user account */}
       <ConfirmationDialog
         open={deleteConfimation}
         loading={loading}
@@ -221,7 +216,7 @@ const CurrentUserProfileComponent = () => {
   );
 };
 
-// Profile Field Component
+/* Generic profile field component */
 const ProfileField = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) => {
   const [expanded, setExpanded] = useState(false);
   const canExpand = value.length > 100;

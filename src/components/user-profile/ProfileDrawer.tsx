@@ -26,13 +26,14 @@ interface ProfileDrawerProps {
 
 const ProfileDrawerComponent = ({ isOpen, onClose, trigger, data }: ProfileDrawerProps) => {
   const { data: session } = useSession();
-  const currentUser = session?.user;
-  const pathname = usePathname();
   const router = useRouter();
+  const pathname = usePathname();
+  const currentUser = session?.user;
   const { cancelFriendRequest, isLoading, error, friends, fetchOtherUserFriends, otherUserFriends } = useFriendRequests(currentUser?.id ?? "");
 
   const [showGroupEdit, setShowGroupEdit] = useState(false);
   const [showAllMembers, setShowAllMembers] = useState(false);
+  const [showAllFriends, setShowAllFriends] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [showUnfriendConfirm, setShowUnfriendConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -63,7 +64,6 @@ const ProfileDrawerComponent = ({ isOpen, onClose, trigger, data }: ProfileDrawe
   const isMutualFriend = useCallback(
     (id: string) => {
       if (!friends || !otherUserFriends) return false;
-
       const isFriend = friends.some((friend) => {
         return (friend.sender.id === currentUser?.id && friend.receiver.id === id) || (friend.receiver.id === currentUser?.id && friend.sender.id === id);
       });
@@ -71,6 +71,23 @@ const ProfileDrawerComponent = ({ isOpen, onClose, trigger, data }: ProfileDrawe
     },
     [currentUser?.id, friends, otherUserFriends]
   );
+
+  /* Check if other user is still a friend */
+  const isFriendStill = useMemo(() => {
+    return friends.some(
+      (friend) => (friend.sender.id === currentUser?.id && friend.receiver.id === otherUser?.id) || (friend.receiver.id === currentUser?.id && friend.sender.id === otherUser?.id)
+    );
+  }, [currentUser?.id, friends, otherUser?.id]);
+
+  /* Show limited or all group members */
+  const displayedMembers = useMemo(() => {
+    return data.users.slice(0, showAllMembers ? data.users.length : 4);
+  }, [data.users, showAllMembers]);
+
+  /* Show limited or all other users friends */
+  const otherUsersFriendsDisplay = useMemo(() => {
+    return otherUserFriends?.slice(0, showAllFriends ? otherUserFriends.length : 4)
+  },[otherUserFriends, showAllFriends])
 
   // Handler to start a conversation from mutual friends
   const handleFriendClick = useCallback(
@@ -89,18 +106,6 @@ const ProfileDrawerComponent = ({ isOpen, onClose, trigger, data }: ProfileDrawe
     },
     [router]
   );
-
-  /* Check if other user is still a friend */
-  const isFriendStill = useMemo(() => {
-    return friends.some(
-      (friend) => (friend.sender.id === currentUser?.id && friend.receiver.id === otherUser?.id) || (friend.receiver.id === currentUser?.id && friend.sender.id === otherUser?.id)
-    );
-  }, [currentUser?.id, friends, otherUser?.id]);
-
-  /* Show limited or all group members */
-  const displayedMembers = useMemo(() => {
-    return data.users.slice(0, showAllMembers ? data.users.length : 4);
-  }, [data.users, showAllMembers]);
 
   /*
     Delete one to one conversation or group if current user is admin
@@ -208,7 +213,7 @@ const ProfileDrawerComponent = ({ isOpen, onClose, trigger, data }: ProfileDrawe
                 </div>
               </div>
 
-              {/* add members and edit group button */}
+              {/* Edit group button for adding, removing and changing group info */}
               {data.isGroup && isGroupAdmin && (
                 <div className="text-xs bg-gray-600/50 px-2 py-1 rounded-lg hover:bg-gray-600 hover:cursor-pointer mt-2" onClick={() => setShowGroupEdit(true)}>
                   Edit group
@@ -216,6 +221,7 @@ const ProfileDrawerComponent = ({ isOpen, onClose, trigger, data }: ProfileDrawe
               )}
             </div>
 
+            {/* Group or Friend detials */}
             <div className="space-y-4">
               {/* Group or other user bio */}
               {(data.isGroup ? data.groupBio : otherUser?.bio) ? (
@@ -234,6 +240,7 @@ const ProfileDrawerComponent = ({ isOpen, onClose, trigger, data }: ProfileDrawe
               <div className="p-4 bg-[#F5F5F6] dark:bg-muted/50 rounded-lg space-y-2">
                 {data.isGroup ? (
                   <>
+                    {/* Group members */}
                     <div className="flex items-center justify-between pb-1">
                       <div className="flex items-center gap-4">
                         <Users className="h-5 w-5 text-muted-foreground" />
@@ -273,7 +280,7 @@ const ProfileDrawerComponent = ({ isOpen, onClose, trigger, data }: ProfileDrawe
                   </>
                 ) : (
                   <>
-                    {/* other user email id */}
+                    {/* Other user email id */}
                     <div className="flex items-center gap-3">
                       <Mail className="h-5 w-5 text-muted-foreground" />
                       <div>
@@ -300,7 +307,7 @@ const ProfileDrawerComponent = ({ isOpen, onClose, trigger, data }: ProfileDrawe
                   {otherUserFriends && otherUserFriends.length > 0 ? (
                     <div className="flex flex-col gap-1 w-full">
                       {otherUserFriends &&
-                        otherUserFriends.map((user) => (
+                        otherUsersFriendsDisplay?.map((user) => (
                           <div
                             key={user.id}
                             className={clsx(
@@ -337,15 +344,15 @@ const ProfileDrawerComponent = ({ isOpen, onClose, trigger, data }: ProfileDrawe
                   )}
 
                   {otherUserFriends && otherUserFriends.length > 4 && (
-                    <Button variant="ghost" className="w-full cursor-pointer hover:border" onClick={() => setShowAllMembers(!showAllMembers)}>
-                      {showAllMembers ? "Show fewer members" : `Show all ${otherUserFriends?.length} friends`}
+                    <Button variant="ghost" className="w-full cursor-pointer hover:border" onClick={() => setShowAllFriends(!showAllFriends)}>
+                      {showAllFriends ? "Show fewer friends" : `Show all ${otherUserFriends?.length} friends`}
                     </Button>
                   )}
                 </div>
               )}
 
               <div className="grid grid-cols-2 gap-4 p-4 bg-[#F5F5F6] dark:bg-muted/50 rounded-lg">
-                {/* group created or other user joined date */}
+                {/* Group created or other user's joined date */}
                 <div className="flex items-center gap-3">
                   <CalendarDays className="h-5 w-5 text-muted-foreground" />
                   <div>
@@ -354,22 +361,22 @@ const ProfileDrawerComponent = ({ isOpen, onClose, trigger, data }: ProfileDrawe
                   </div>
                 </div>
 
-                {/* other user online info */}
-                {!data.isGroup && otherUser?.lastOnline && (
+                {/* Other user online info */}
+                {!data.isGroup && (otherUser?.isOnline || otherUser?.lastOnline) && (
                   <div className="flex items-center gap-3">
                     <Clock className="h-5 w-5 text-muted-foreground" />
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Last Seen</p>
-                      <p className="text-foreground">{otherUser.isOnline ? "Online now" : format(new Date(otherUser.lastOnline), "PPp")}</p>
+                      <p className="text-foreground">{otherUser.isOnline ? "Online now" : otherUser.lastOnline ? format(new Date(otherUser.lastOnline), "PPp") : "Unavailable"}</p>
                     </div>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* action buttons */}
+            {/* Action buttons (leave group, delete group, delete chat, unfriend) */}
             <div className="flex gap-3">
-              {/* leave group */}
+              {/* Leave group */}
               {data.isGroup && (
                 <Button variant="secondary" className="flex-1 gap-2 cursor-pointer" onClick={() => setShowLeaveGroupConfirm(true)} disabled={isLoading}>
                   <CircleOff />
@@ -377,7 +384,7 @@ const ProfileDrawerComponent = ({ isOpen, onClose, trigger, data }: ProfileDrawe
                 </Button>
               )}
 
-              {/* delete group (only for admins) */}
+              {/* Delete group (only by admins) */}
               {data.isGroup && isGroupAdmin && (
                 <Button
                   variant="destructive"
@@ -415,7 +422,7 @@ const ProfileDrawerComponent = ({ isOpen, onClose, trigger, data }: ProfileDrawe
         )}
       </DialogBox>
 
-      {/* conversation delete confirmation dialog (one to one and group for only admins) */}
+      {/* Delete confirmation dialog — shown for 1-on-1 chats and for group chats (admin-only) */}
       <ConfirmationDialog
         open={data.isGroup ? showDeleteGroupConfirm : showDeleteConfirm}
         loading={deleteLoading}
@@ -423,19 +430,19 @@ const ProfileDrawerComponent = ({ isOpen, onClose, trigger, data }: ProfileDrawe
         title={data.isGroup ? "Delete Group" : "Delete Chat"}
         description={
           data.isGroup
-            ? "This will permanently delete this group, and all its messages with added friends."
-            : "This will permanently delete this conversation and all its messages."
+            ? "This will permanently delete this group and all its messages for all members."
+            : `This will permanently delete this chat and all its messages between you and ${otherUser?.name}.`
         }
         onConfirm={handleDeleteConversation}
       />
 
-      {/* Leave group conversation confirmation dialog */}
+      {/* Confirmation dialog for leaving a group conversation */}
       <ConfirmationDialog
         open={showLeaveGroupConfirm}
         loading={deleteLoading}
         onOpenChange={setShowLeaveGroupConfirm}
         title={"Leave Group"}
-        description={"You will permanantly leave this group, and not able to join again except invited by group admins."}
+        description={"You will permanently leave this group and won't be able to rejoin unless invited by a group admin."}
         onConfirm={handleLeaveGroup}
       />
 
@@ -445,7 +452,7 @@ const ProfileDrawerComponent = ({ isOpen, onClose, trigger, data }: ProfileDrawe
         loading={isLoading}
         onOpenChange={setShowUnfriendConfirm}
         title={`Unfriend ${otherUser?.name}?`}
-        description="This will remove them from your friends list but keep your conversation history."
+        description={`This will remove ${otherUser?.name} from your friends list, but your conversation history will remain intact.`}
         onConfirm={handleUnfriend}
       />
     </>
@@ -457,6 +464,7 @@ export const ProfileDrawer = React.memo(ProfileDrawerComponent, (prev, next) => 
     prev.isOpen === next.isOpen &&
     prev.trigger === next.trigger &&
     prev.onClose === next.onClose &&
+    prev.data.id === next.data.id &&
     prev.data.name === next.data.name &&
     prev.data.groupAdmins === next.data.groupAdmins &&
     prev.data.groupAvatar === next.data.groupAvatar &&

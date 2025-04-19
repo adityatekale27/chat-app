@@ -114,9 +114,11 @@ const ChatHeaderComponent = ({ conversation, otherUser }: ChatHeaderProps) => {
 
 export const ChatHeader = React.memo(ChatHeaderComponent, (prevProps, nextProps) => {
   return (
-    prevProps.conversation.id === nextProps.conversation.id &&
     prevProps.conversation.updatedAt === nextProps.conversation.updatedAt &&
+    prevProps.conversation.id === nextProps.conversation.id &&
+    prevProps.conversation.groupAvatar === nextProps.conversation.groupAvatar &&
     prevProps.otherUser?.id === nextProps.otherUser?.id &&
+    prevProps.otherUser?.image === nextProps.otherUser?.image &&
     prevProps.otherUser?.lastOnline === nextProps.otherUser?.lastOnline
   );
 });

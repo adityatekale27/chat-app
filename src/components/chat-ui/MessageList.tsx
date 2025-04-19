@@ -1,11 +1,10 @@
 "use client";
 
 import { ConversationWithMessages, MessageWithSender } from "@/types/chat";
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import clsx from "clsx";
 import { MessageOptions } from "./MessageOptions";
 import { CldImage } from "next-cloudinary";
-import { FileSkeleton } from "../loading-states/LoadingSkeleton";
 
 interface MessageListProps {
   messages: MessageWithSender[];
@@ -49,9 +48,7 @@ function formatChatDate(date: Date) {
   });
 }
 
-const MessageListComponent = ({ messages, currentUserId, onDelete,msgDeleting, otherUserOnline, currentConversation }: MessageListProps) => {
-  const [imageLoaded, setImageLoaded] = useState(false);
-
+const MessageListComponent = ({ messages, currentUserId, onDelete, msgDeleting, otherUserOnline, currentConversation }: MessageListProps) => {
   // Get and memoize unique messages
   const uniqueMessages = useMemo(() => {
     return [...new Map(messages.map((msg) => [msg.id, msg])).values()];
@@ -82,7 +79,6 @@ const MessageListComponent = ({ messages, currentUserId, onDelete,msgDeleting, o
                 {/* Display image attachment from message (if available) */}
                 {msg.imageUrl && (
                   <div className="mb-1.5 mt-1 pr-2 rounded-lg overflow-hidden w-full max-w-sm h-49">
-                    {!imageLoaded && <FileSkeleton />}
                     <CldImage
                       src={msg.imageUrl}
                       alt="Message attachment"
@@ -92,7 +88,8 @@ const MessageListComponent = ({ messages, currentUserId, onDelete,msgDeleting, o
                       quality="auto"
                       fetchPriority="low"
                       loading="lazy"
-                      onLoad={() => setImageLoaded(true)}
+                      placeholder="blur"
+                      blurDataURL={msg.imageUrl}
                     />
                   </div>
                 )}

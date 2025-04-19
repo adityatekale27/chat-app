@@ -2,7 +2,7 @@
 
 import React, { useCallback, useState } from "react";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { Path, useForm, UseFormRegister } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,6 @@ import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
 import clsx from "clsx";
 
-// Assume you have a safe User type (without hashedPassword) and a Group type defined:
 interface User {
   id: string;
   name?: string | null;
@@ -47,6 +46,7 @@ interface EditProfileOrGroupProps {
   onChange: () => void;
 }
 
+/* Zod schema for user */
 const userSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters").max(50),
   bio: z.string().max(500, "Bio cannot exceed 500 characters").optional(),
@@ -80,7 +80,7 @@ const userSchema = z.object({
 });
 type UserFormData = z.infer<typeof userSchema>;
 
-// Schema for group editing.
+// Zod schema for group
 const groupSchema = z.object({
   name: z.string().min(2, "Group name must be at least 2 characters").max(50),
   groupBio: z.string().max(500, "Group bio cannot exceed 500 characters").optional(),
@@ -109,9 +109,8 @@ export const EditProfile = ({ mode, user, group, onChange, open }: EditProfileOr
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [addNewPassword, setAddNewPassword] = useState(false);
 
-  // Choose schema and default values based on mode.
+  // Choose schema and default values based on mode
   const schema = mode === "user" ? userSchema : groupSchema;
-
   const defaultValues =
     mode === "user"
       ? {
@@ -130,6 +129,7 @@ export const EditProfile = ({ mode, user, group, onChange, open }: EditProfileOr
           users: group?.users?.map((member) => member.id) || [],
         };
 
+  /* Initialize the useForm with default values */
   const {
     register,
     handleSubmit,
@@ -142,12 +142,13 @@ export const EditProfile = ({ mode, user, group, onChange, open }: EditProfileOr
     defaultValues,
   });
 
+  // Watch values
   const userImageUrl = watch("image");
   const groupAvatarUrl = watch("groupAvatar");
   const groupUsers = watch("users");
   const groupAdmins = watch("groupAdmins");
 
-  // Toggle selection of group admins and group members
+  /* Toggle selection of group admins and group members */
   const toggleSelection = useCallback(
     <T extends string>(id: T, key: "users" | "groupAdmins", currentList: T[]) => {
       const updatedList = currentList.includes(id) ? currentList.filter((item) => item !== id) : [...currentList, id];
@@ -156,7 +157,7 @@ export const EditProfile = ({ mode, user, group, onChange, open }: EditProfileOr
     [setValue]
   );
 
-  // Shared file upload handler for image/group avatar.
+  /* File select handler for group avatar or user image */
   const handleFileSelect = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       try {
@@ -203,7 +204,7 @@ export const EditProfile = ({ mode, user, group, onChange, open }: EditProfileOr
     [mode, setValue]
   );
 
-  // Form submission handler.
+  /* Validate form values and submit */
   const handleFormSubmit = useCallback(
     async (data: UserFormData | GroupFormData) => {
       try {
@@ -227,7 +228,7 @@ export const EditProfile = ({ mode, user, group, onChange, open }: EditProfileOr
             conversationId: group?.id,
             formData: data,
           });
-          
+
           toast.success("Group updated successfully");
         }
       } catch (error: unknown) {
@@ -246,8 +247,10 @@ export const EditProfile = ({ mode, user, group, onChange, open }: EditProfileOr
 
   return (
     <>
+      {/* Header: group name/user name, group avatar/user image and edit button*/}
       <CardHeader>
         <div className="flex items-start justify-between">
+          {/* User or group name*/}
           <div className="self-center">
             <CardTitle className="pb-2">{mode === "user" ? "Edit Profile" : "Edit Group"}</CardTitle>
             <CardDescription className="max-w-[90%]">
@@ -257,7 +260,7 @@ export const EditProfile = ({ mode, user, group, onChange, open }: EditProfileOr
             </CardDescription>
           </div>
           <div className="flex flex-col items-center gap-2">
-            {/* Avatar / Group Image */}
+            {/* User or group avatar */}
             <div className="relative h-15 w-15 rounded-full overflow-hidden border">
               {uploading ? (
                 <div className="h-full w-full flex items-center justify-center bg-gray-200 dark:bg-gray-500/50">
@@ -291,30 +294,41 @@ export const EditProfile = ({ mode, user, group, onChange, open }: EditProfileOr
         </div>
       </CardHeader>
 
+      {/* Content: name, bio, username, password change toggle */}
       <CardContent>
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
           {mode === "user" ? (
             <>
               {/* Name Field */}
-              <div className="space-y-2">
-                <Label htmlFor="name">Name</Label>
-                <Input id="name" {...register("name")} disabled={isSubmitting} />
-                {errors && "name" in errors && <p className="text-sm text-red-500">{errors.name?.message as string}</p>}
-              </div>
+              <ProfileField
+                type="text"
+                htmlId="name"
+                label="Name"
+                register={register}
+                disabled={isSubmitting}
+                errorMessage={errors && "name" in errors && <p className="text-sm text-red-500">{errors.name?.message as string}</p>}
+              />
 
               {/* Username Field */}
-              <div className="space-y-2">
-                <Label htmlFor="username">Username</Label>
-                <Input id="username" {...register("username")} disabled={isSubmitting} />
-                {errors && "username" in errors && <p className="text-sm text-red-500">{errors.username?.message as string}</p>}
-              </div>
+              <ProfileField
+                type="text"
+                htmlId="username"
+                label="Username"
+                register={register}
+                disabled={isSubmitting}
+                errorMessage={errors && "username" in errors && <p className="text-sm text-red-500">{errors.username?.message as string}</p>}
+              />
 
               {/* Bio Field */}
-              <div className="space-y-2">
-                <Label htmlFor="bio">Bio</Label>
-                <Textarea id="bio" {...register("bio")} rows={1} disabled={isSubmitting} />
-                {errors && "bio" in errors && <p className="text-sm text-red-500">{errors.bio?.message as string}</p>}
-              </div>
+              <ProfileField
+                type="text"
+                htmlId="bio"
+                rows={2}
+                label="Bio"
+                register={register}
+                disabled={isSubmitting}
+                errorMessage={errors && "bio" in errors && <p className="text-sm text-red-500">{errors.bio?.message as string}</p>}
+              />
 
               {/* Change password toggle, if current password is available */}
               {user?.hasPassword && (
@@ -330,11 +344,14 @@ export const EditProfile = ({ mode, user, group, onChange, open }: EditProfileOr
               {/* Change passowrd field */}
               {user?.hasPassword && showChangePassword && (
                 <>
-                  <div className="space-y-2">
-                    <Label htmlFor="currentPassword">Current Password</Label>
-                    <Input id="currentPassword" type={showPassword ? "text" : "password"} {...register("currentPassword")} disabled={isSubmitting} />
-                    {errors && "currentPassword" in errors && <p className="text-sm text-red-500">{errors.currentPassword?.message as string}</p>}
-                  </div>
+                  <ProfileField
+                    type={showPassword ? "text" : "password"}
+                    htmlId="currentPassword"
+                    label="Current Password"
+                    register={register}
+                    disabled={isSubmitting}
+                    errorMessage={errors && "currentPassword" in errors && <p className="text-sm text-red-500">{errors.currentPassword?.message as string}</p>}
+                  />
                   <div className="relative space-y-2">
                     <Label htmlFor="newPassword">New Password</Label>
                     <Input id="newPassword" type={showPassword ? "text" : "password"} {...register("newPassword")} disabled={isSubmitting} />
@@ -372,26 +389,32 @@ export const EditProfile = ({ mode, user, group, onChange, open }: EditProfileOr
           ) : (
             <>
               {/* Group name field */}
-              <div className="space-y-2">
-                <Label htmlFor="groupName">Group Name</Label>
-                <Input id="groupName" {...register("name")} disabled={isSubmitting} />
-                {errors && "name" in errors && <p className="text-sm text-red-500">{errors.name?.message as string}</p>}
-              </div>
+              <ProfileField
+                type="text"
+                htmlId="name"
+                label="Group Name"
+                register={register}
+                disabled={isSubmitting}
+                errorMessage={errors && "name" in errors && <p className="text-sm text-red-500">{errors.name?.message as string}</p>}
+              />
 
               {/* Group bio field */}
-              <div className="space-y-2">
-                <Label htmlFor="groupBio">Group Bio</Label>
-                <Textarea id="groupBio" {...register("groupBio")} rows={1} disabled={isSubmitting} />
-                {errors && "groupBio" in errors && <p className="text-sm text-red-500">{errors.groupBio?.message as string}</p>}
-              </div>
+              <ProfileField
+                type="text"
+                htmlId="groupBio"
+                label="Group Bio"
+                rows={2}
+                register={register}
+                disabled={isSubmitting}
+                errorMessage={errors && "groupBio" in errors && <p className="text-sm text-red-500">{errors.groupBio?.message as string}</p>}
+              />
 
-              {/* group members section section */}
+              {/* Group members section section */}
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <Label>Select Group Members</Label>
                   <span className="text-sm text-gray-500">{!changeGroupAdmins ? `${groupUsers.length} selected` : `${groupAdmins?.length} selected`}</span>
                 </div>
-
                 {changeGroupAdmins ? (
                   <div className="max-h-60 overflow-y-auto border rounded-lg p-2 space-y-2">
                     <h3 className="text-sm font-semibold mb-2 ml-2">Manage Admins</h3>
@@ -488,7 +511,7 @@ export const EditProfile = ({ mode, user, group, onChange, open }: EditProfileOr
             </>
           )}
 
-          {/* Action Buttons */}
+          {/* Action buttons (save changes and cancel)*/}
           <div className="flex justify-end gap-3 pt-1">
             <Button
               variant="outline"
@@ -514,5 +537,36 @@ export const EditProfile = ({ mode, user, group, onChange, open }: EditProfileOr
         </form>
       </CardContent>
     </>
+  );
+};
+
+/* Generic form field component */
+const ProfileField = <T extends Record<string, unknown>>({
+  htmlId,
+  label,
+  type,
+  disabled,
+  register,
+  errorMessage,
+  rows,
+}: {
+  htmlId: Path<T>;
+  label: string;
+  type: string;
+  disabled: boolean;
+  register: UseFormRegister<T>;
+  errorMessage: React.ReactNode;
+  rows?: number;
+}) => {
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={String(htmlId)}>{label}</Label>
+      {htmlId === "bio" ? (
+        <Textarea id={String(htmlId)} rows={rows ?? 2} {...register(htmlId)} disabled={disabled} />
+      ) : (
+        <Input id={String(htmlId)} type={type} {...register(htmlId)} disabled={disabled} />
+      )}
+      {errorMessage}
+    </div>
   );
 };
