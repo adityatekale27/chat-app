@@ -11,6 +11,7 @@ interface MessageListProps {
   messages: MessageWithSender[];
   currentUserId: string;
   otherUserOnline?: boolean;
+  msgDeleting: boolean;
   onDelete: (messageId: string) => void;
   currentConversation: ConversationWithMessages;
 }
@@ -48,7 +49,7 @@ function formatChatDate(date: Date) {
   });
 }
 
-const MessageListComponent = ({ messages, currentUserId, onDelete, otherUserOnline, currentConversation }: MessageListProps) => {
+const MessageListComponent = ({ messages, currentUserId, onDelete,msgDeleting, otherUserOnline, currentConversation }: MessageListProps) => {
   const [imageLoaded, setImageLoaded] = useState(false);
 
   // Get and memoize unique messages
@@ -132,7 +133,7 @@ const MessageListComponent = ({ messages, currentUserId, onDelete, otherUserOnli
               </div>
 
               {/* Message options */}
-              <MessageOptions message={msg} onDelete={onDelete} currentUserId={currentUserId || ""} seenList={msg.seenMessage!} />
+              <MessageOptions message={msg} msgDeleting={msgDeleting} onDelete={onDelete} currentUserId={currentUserId || ""} seenList={msg.seenMessage!} />
             </div>
           </div>
         );
@@ -144,6 +145,7 @@ const MessageListComponent = ({ messages, currentUserId, onDelete, otherUserOnli
 export const MessageList = React.memo(
   MessageListComponent,
   (prev, next) =>
+    prev.msgDeleting === next.msgDeleting &&
     prev.currentUserId === next.currentUserId &&
     prev.otherUserOnline === next.otherUserOnline &&
     prev.messages.length === next.messages.length &&

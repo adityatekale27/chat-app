@@ -71,8 +71,6 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    console.log("updatedMessage", updatedMessage);
-
     /* Pusher event for seen message */
     await pusherServer.trigger(conversationId, "message:seen", {
       lastMessageId: lastMessage.id,

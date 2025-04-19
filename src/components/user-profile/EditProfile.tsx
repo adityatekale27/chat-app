@@ -227,7 +227,7 @@ export const EditProfile = ({ mode, user, group, onChange, open }: EditProfileOr
             conversationId: group?.id,
             formData: data,
           });
-
+          
           toast.success("Group updated successfully");
         }
       } catch (error: unknown) {

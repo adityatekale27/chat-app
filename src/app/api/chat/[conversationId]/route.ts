@@ -122,17 +122,17 @@ export async function PATCH(request: NextRequest) {
     });
 
     if (!existingGroup) {
-      return NextResponse.json({ error: "Group not found" }, { status: 404 });
+      return NextResponse.json({ message: "Group not found" }, { status: 404 });
     }
 
     if (!existingGroup.isGroup) {
-      return NextResponse.json({ error: "Only group chats can be updated" }, { status: 400 });
+      return NextResponse.json({ message: "Only group chats can be updated" }, { status: 400 });
     }
 
     // Check if current user is a group admin
     const isAdmin = existingGroup.groupAdmins.some((admin) => admin.id === currentUser.id);
     if (!isAdmin) {
-      return NextResponse.json({ error: "Only group admins can update group details" }, { status: 403 });
+      return NextResponse.json({ message: "Only group admins can update group details" }, { status: 403 });
     }
 
     // Validate form data

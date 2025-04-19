@@ -16,7 +16,7 @@ interface UpdatedUser {
   email: string;
   isOnline: boolean;
   lastOnline: Date | null;
-};
+}
 
 interface FriendRequestProps {
   sentRequest: (Contact & { receiver: User })[];
@@ -42,39 +42,44 @@ export function useFriendRequests(currentUserId: string, searchFriendTerm: strin
    * Fetch paginated friend contacts (50 at a time).
    * If search term changed, it resets the list.
    */
-  const fetchAllContacts = useCallback(async (friendSearchChanged = false) => {
-    setIsLoading(true);
-    setError(null);
+  const fetchAllContacts = useCallback(
+    async (friendSearchChanged = false) => {
+      setIsLoading(true);
+      setError(null);
 
-    try {
-      const { data } = await axios.get<FriendRequestProps>("/api/contact", { params: { search: searchFriendTerm, lastFriendId: friendSearchChanged ? undefined : lastFriendId } });
+      try {
+        const { data } = await axios.get<FriendRequestProps>("/api/contact", {
+          params: { search: searchFriendTerm, lastFriendId: friendSearchChanged ? undefined : lastFriendId },
+        });
 
-      // if serach term changes, replace list
-      if (friendSearchChanged) {
-        setAllContacts({ ...data, friends: data.friends });
-      } else {
-        setAllContacts((prev) =>
-          prev ? { ...prev, friends: [...prev.friends, ...data.friends.filter((newUser) => !prev.friends.some((prevUser) => prevUser.id === newUser.id))] } : data
-        );
+        // if serach term changes, replace list
+        if (friendSearchChanged) {
+          setAllContacts({ ...data, friends: data.friends });
+        } else {
+          setAllContacts((prev) =>
+            prev ? { ...prev, friends: [...prev.friends, ...data.friends.filter((newUser) => !prev.friends.some((prevUser) => prevUser.id === newUser.id))] } : data
+          );
+        }
+
+        // update the pagination pointer (lastUserId)
+        setLastFriendId(data.lastFriendId);
+
+        // if lastUserId is null then their are no more users
+        setHasMore(Boolean(data.lastFriendId));
+      } catch (error: unknown) {
+        if (axios.isCancel(error)) return;
+        console.log("fetchAllContact error:", error);
+        if (axios.isAxiosError(error)) {
+          setError(error.response?.data?.message || "Failed to get Contacts Data");
+        } else {
+          setError("An unexpected error occurred");
+        }
+      } finally {
+        setIsLoading(false);
       }
-
-      // update the pagination pointer (lastUserId)
-      setLastFriendId(data.lastFriendId);
-
-      // if lastUserId is null then their are no more users
-      setHasMore(Boolean(data.lastFriendId));
-    } catch (error: unknown) {
-      if (axios.isCancel(error)) return;
-      console.log("fetchAllContact error:", error);
-      if (axios.isAxiosError(error)) {
-        setError(error.response?.data?.message || "Failed to get Contacts Data");
-      } else {
-        setError("An unexpected error occurred");
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  }, [searchFriendTerm, lastFriendId]);
+    },
+    [searchFriendTerm, lastFriendId]
+  );
 
   // Fetch other user friends list
   const fetchOtherUserFriends = useCallback(async (otherUserId: string, otherUserName: string) => {
@@ -294,7 +299,7 @@ export function useFriendRequests(currentUserId: string, searchFriendTerm: strin
 
     return () => {
       friendsChannel.unbind_all();
-      friendsChannel.unsubscribe();
+      pusher.unsubscribe(currentUserId);
     };
   }, [currentUserId, pusher]);
 
@@ -333,7 +338,7 @@ export function useFriendRequests(currentUserId: string, searchFriendTerm: strin
 
     return () => {
       updatedUser.unbind_all();
-      updatedUser.unsubscribe();
+      pusher.unsubscribe("userUpdate");
     };
   }, [pusher]);
 

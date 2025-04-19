@@ -15,12 +15,13 @@ const ChatPage = () => {
   const { data: session } = useSession();
   const currentUser = session?.user;
   const { conversationId } = useParams();
-  const { fetchMessages, messages, sendMessage, deleteMessage, currentConversation, fetchConversationById, messagesLoading, seenMessages } = useChat(currentUser?.id ?? "");
+  const { fetchMessages, messages, sendMessage, deleteMessage, currentConversation, fetchConversationById, messagesLoading, seenMessages } = useChat(currentUser?.id || "");
 
   const [isUnfriended, setIsUnfriended] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [fileUploading, setFileUploading] = useState(false);
   const [msgSending, setMsgSending] = useState(false);
+  const [msgDeleting, setMsgDeleting] = useState(false);
   const [message, setMessage] = useState("");
 
   /**
@@ -76,12 +77,15 @@ const ChatPage = () => {
   const handleDeleteMessage = useCallback(
     async (messageId: string) => {
       try {
+        setMsgDeleting(true);
         if (!currentConversation?.id || !currentUser?.id || !messageId) return;
         await deleteMessage(currentConversation.id as string, messageId);
         toast.success("Message deleted!");
       } catch (error) {
         toast.error("Failed to delete message");
         console.log("handleDeleteMessage error", error);
+      } finally {
+        setMsgDeleting(false);
       }
     },
     [currentConversation?.id, currentUser?.id, deleteMessage]
@@ -139,6 +143,7 @@ const ChatPage = () => {
             messages={messages}
             currentUserId={currentUser?.id || ""}
             onDelete={handleDeleteMessage}
+            msgDeleting={msgDeleting}
             otherUserOnline={otherUser?.isOnline}
           />
         ) : (

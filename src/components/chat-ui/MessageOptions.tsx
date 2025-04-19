@@ -22,9 +22,10 @@ interface MessageOptionsProps {
   onDelete: (messageId: string) => void;
   currentUserId: string;
   seenList: User[];
+  msgDeleting: boolean;
 }
 
-const MessageOptionsComponent = ({ message, onDelete, currentUserId, seenList }: MessageOptionsProps) => {
+const MessageOptionsComponent = ({ message, onDelete, currentUserId, seenList, msgDeleting }: MessageOptionsProps) => {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [deleteConfimation, setDeleteConfirmation] = useState(false);
 
@@ -51,9 +52,7 @@ const MessageOptionsComponent = ({ message, onDelete, currentUserId, seenList }:
     toast.success("File downloading!");
   }, [message.imageUrl]);
 
-  console.log("seenList", seenList);
   const seenByOthers = seenList.filter((u) => u.id !== currentUserId);
-  console.log("seenByOthers", seenByOthers);
 
   return (
     <>
@@ -198,6 +197,7 @@ const MessageOptionsComponent = ({ message, onDelete, currentUserId, seenList }:
       {/* Delete message confirmation box */}
       <ConfirmationDialog
         open={deleteConfimation}
+        loading={msgDeleting}
         onOpenChange={setDeleteConfirmation}
         title="Are you sure!"
         description="Click confirm if you want to permanently delete this message."
@@ -210,6 +210,7 @@ const MessageOptionsComponent = ({ message, onDelete, currentUserId, seenList }:
 export const MessageOptions = React.memo(
   MessageOptionsComponent,
   (prevProps, nextProps) =>
+    prevProps.msgDeleting === nextProps.msgDeleting &&
     prevProps.currentUserId === nextProps.currentUserId &&
     prevProps.message.id === nextProps.message.id &&
     prevProps.seenList.length === nextProps.seenList.length &&

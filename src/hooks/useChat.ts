@@ -44,63 +44,6 @@ export const useChat = (currentUserId: string) => {
   const [currentConversation, setCurrentConversation] = useState<ConversationWithMessages | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
 
-  // Subscribe pusher events for conversation list
-  useEffect(() => {
-    const userChannel = pusherClient.subscribe(currentUserId);
-
-    // bind new conversation
-    userChannel.bind("conversation:new", (data: Conversation) => {
-      setConversations((prev) => (prev.some((conversation) => conversation.id === data.id) ? prev : [...prev, data]));
-    });
-
-    // bind removed conversation
-    userChannel.bind("conversation:removed", (data: { id: string }) => {
-      setConversations((prev) => {
-        const index = prev.findIndex((c) => c.id === data.id && c.userIds.includes(currentUserId));
-        if (index === -1) return prev;
-        return [...prev.slice(0, index), ...prev.slice(index + 1)];
-      });
-      setCurrentConversation((prev) => (prev?.id === data.id ? null : prev));
-    });
-
-    // bind conversation update
-    userChannel.bind("conversation:updated", (data: { updatedConversation?: Conversation; updatedGroup?: Conversation; action: string }) => {
-      if (["group_update", "admin_left", "member_left"].includes(data.action)) {
-        const updated = data.updatedConversation || data.updatedGroup;
-        if (!updated) return;
-
-        setConversations((prev) => prev.map((conversation) => (conversation.id === updated.id ? { ...conversation, ...updated } : conversation)));
-        setCurrentConversation((prev) => (prev?.id === updated.id ? { ...prev, ...updated } : prev));
-      }
-    });
-
-    // bind last message update in conversation
-    userChannel.bind("conversation:lastMessage", (updated: { id: string; message: Message[]; lastMessageAt: Date }) => {
-      setConversations((prev) => {
-        const index = prev.findIndex((conv) => conv.id === updated.id);
-        if (index === -1) return prev;
-
-        const newList = [...prev];
-        newList[index] = {
-          ...newList[index],
-          messages: updated.message,
-          lastMessageAt: updated.lastMessageAt,
-        };
-
-        return newList.sort((a, b) => {
-          const aTime = new Date(a.lastMessageAt || 0).getTime();
-          const bTime = new Date(b.lastMessageAt || 0).getTime();
-          return bTime - aTime;
-        });
-      });
-    });
-
-    return () => {
-      userChannel.unbind_all();
-      userChannel.unsubscribe();
-    };
-  }, [currentUserId, pusherClient]);
-
   // fetch all conversations on chat sidebar mount
   const fetchConversations = useCallback(async (searchTerm = "") => {
     setLoading(true);
@@ -220,7 +163,69 @@ export const useChat = (currentUserId: string) => {
     }
   }, []);
 
-  // Subscribe to currentConversation message pusher events
+  /**
+   * Subscribe pusher events for conversation list
+   */
+  useEffect(() => {
+    if (!currentUserId) return;
+    const userChannel = pusherClient.subscribe(currentUserId);
+
+    // bind new conversation
+    userChannel.bind("conversation:new", (data: Conversation) => {
+      setConversations((prev) => (prev.some((conversation) => conversation.id === data.id) ? prev : [...prev, data]));
+    });
+
+    // bind removed conversation
+    userChannel.bind("conversation:removed", (data: { id: string }) => {
+      setConversations((prev) => {
+        const index = prev.findIndex((c) => c.id === data.id && c.userIds.includes(currentUserId));
+        if (index === -1) return prev;
+        return [...prev.slice(0, index), ...prev.slice(index + 1)];
+      });
+      setCurrentConversation((prev) => (prev?.id === data.id ? null : prev));
+    });
+
+    // bind conversation update
+    userChannel.bind("conversation:updated", (data: { updatedConversation?: Conversation; updatedGroup?: Conversation; action: string }) => {
+      if (["group_update", "admin_left", "member_left"].includes(data.action)) {
+        const updated = data.updatedConversation || data.updatedGroup;
+        if (!updated) return;
+
+        setConversations((prev) => prev.map((conversation) => (conversation.id === updated.id ? { ...conversation, ...updated } : conversation)));
+        setCurrentConversation((prev) => (prev?.id === updated.id ? { ...prev, ...updated } : prev));
+      }
+    });
+
+    // bind last message update in conversation
+    userChannel.bind("conversation:lastMessage", (updated: { id: string; message: Message[]; lastMessageAt: Date }) => {
+      setConversations((prev) => {
+        const index = prev.findIndex((conv) => conv.id === updated.id);
+        if (index === -1) return prev;
+
+        const newList = [...prev];
+        newList[index] = {
+          ...newList[index],
+          messages: updated.message,
+          lastMessageAt: updated.lastMessageAt,
+        };
+
+        return newList.sort((a, b) => {
+          const aTime = new Date(a.lastMessageAt || 0).getTime();
+          const bTime = new Date(b.lastMessageAt || 0).getTime();
+          return bTime - aTime;
+        });
+      });
+    });
+
+    return () => {
+      userChannel.unbind_all();
+      userChannel.unsubscribe();
+    };
+  }, [currentUserId, pusherClient]);
+
+  /**
+   * Subscribe to currentConversation message pusher events
+   */
   useEffect(() => {
     if (!currentConversation?.id) return;
     const channel = pusherClient.subscribe(currentConversation.id);
@@ -260,7 +265,7 @@ export const useChat = (currentUserId: string) => {
       channel.unbind_all();
       channel.unsubscribe();
     };
-  }, [currentConversation?.id, currentUserId, pusherClient, seenMessages]);
+  }, [currentConversation?.id, currentUserId, pusherClient]);
 
   return {
     conversations,
