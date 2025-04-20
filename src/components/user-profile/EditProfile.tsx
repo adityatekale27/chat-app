@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
-import { Path, useForm, UseFormRegister } from "react-hook-form";
+import { Path, useForm, UseFormRegister, SubmitHandler } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
 import clsx from "clsx";
+import { useFriendRequests } from "@/hooks/useFriendRequests";
 
 interface User {
   id: string;
@@ -102,10 +103,13 @@ const VALID_FILE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/jpg"];
 
 export const EditProfile = ({ mode, user, group, onChange, open }: EditProfileOrGroupProps) => {
   const { data: session, update } = useSession();
+  const currentUser = session?.user;
+  const { friends } = useFriendRequests(currentUser?.id ?? "");
 
   const [showPassword, setShowPassword] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [changeGroupAdmins, setChangeGroupAdmins] = useState(false);
+  const [selectMoreUsers, setSelectMoreUsers] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [addNewPassword, setAddNewPassword] = useState(false);
 
@@ -148,6 +152,13 @@ export const EditProfile = ({ mode, user, group, onChange, open }: EditProfileOr
   const groupUsers = watch("users");
   const groupAdmins = watch("groupAdmins");
 
+  /* Admin friend list, exclude group members */
+  const isAdmin = group?.groupAdmins?.some((admin) => admin.id === currentUser?.id);
+  const adminFriendsList = useMemo(() => {
+    if (!isAdmin) return [];
+    return friends.map((friend) => (friend.sender.id === currentUser?.id ? friend.receiver : friend.sender)).filter((user) => !groupUsers.includes(user.id));
+  }, [currentUser?.id, friends, groupUsers, isAdmin]);
+
   /* Toggle selection of group admins and group members */
   const toggleSelection = useCallback(
     <T extends string>(id: T, key: "users" | "groupAdmins", currentList: T[]) => {
@@ -156,6 +167,16 @@ export const EditProfile = ({ mode, user, group, onChange, open }: EditProfileOr
     },
     [setValue]
   );
+
+  // Builds a lookup map of all known users (from group and friends).
+  const usersById = useMemo(() => {
+    const map = new Map<string, User>();
+    group?.users?.forEach((u) => map.set(u.id, u));
+    friends.map((f) => (f.sender.id === currentUser?.id ? f.receiver : f.sender)).forEach((u) => map.set(u.id, u));
+    return map;
+  }, [group?.users, friends, currentUser?.id]);
+  // Gets full user objects for group user IDs using the lookup map.
+  const groupUserObjects = useMemo(() => groupUsers.map((id) => usersById.get(id)).filter((u): u is User => !!u), [groupUsers, usersById]);
 
   /* File select handler for group avatar or user image */
   const handleFileSelect = useCallback(
@@ -204,7 +225,7 @@ export const EditProfile = ({ mode, user, group, onChange, open }: EditProfileOr
     [mode, setValue]
   );
 
-  /* Validate form values and submit */
+  /* Validate form values and perform submit */
   const handleFormSubmit = useCallback(
     async (data: UserFormData | GroupFormData) => {
       try {
@@ -296,7 +317,7 @@ export const EditProfile = ({ mode, user, group, onChange, open }: EditProfileOr
 
       {/* Content: name, bio, username, password change toggle */}
       <CardContent>
-        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
+        <form onSubmit={handleSubmit(handleFormSubmit as SubmitHandler<UserFormData | GroupFormData>)} className="space-y-6">
           {mode === "user" ? (
             <>
               {/* Name Field */}
@@ -409,66 +430,30 @@ export const EditProfile = ({ mode, user, group, onChange, open }: EditProfileOr
                 errorMessage={errors && "groupBio" in errors && <p className="text-sm text-red-500">{errors.groupBio?.message as string}</p>}
               />
 
-              {/* Group members section section */}
+              {/* Select group members and group admins */}
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <Label>Select Group Members</Label>
                   <span className="text-sm text-gray-500">{!changeGroupAdmins ? `${groupUsers.length} selected` : `${groupAdmins?.length} selected`}</span>
                 </div>
-                {changeGroupAdmins ? (
-                  <div className="max-h-60 overflow-y-auto border rounded-lg p-2 space-y-2">
-                    <h3 className="text-sm font-semibold mb-2 ml-2">Manage Admins</h3>
-                    {group?.groupAdmins?.length === 0 ? (
-                      <p className="text-sm text-gray-500 py-2 text-center ">No admins available</p>
-                    ) : (
-                      group?.users.map((member) => (
-                        <div key={member.id} className="flex items-center p-2 hover:bg-gray-100 dark:hover:bg-gray-700/70 rounded-md">
-                          <label className="flex items-center w-full cursor-pointer relative">
-                            <div className="flex items-center justify-start flex-1">
-                              <Avatar className="h-9 w-9">
-                                <AvatarImage src={member.image || "/images/avatar.jpg"} />
-                              </Avatar>
-                              <div className="font-medium text-sm ml-3">
-                                <p className="flex items-center gap-1 max-w-50 truncate overflow-hidden">
-                                  <span className="max-w-25 truncate overflow-hidden">{member.name}</span>{" "}
-                                  {groupAdmins?.includes(member.id) && (
-                                    <span className="leading-none bg-gray-500/30 px-1 py-0.5 rounded-lg text-muted-foreground text-xs max-w-25 truncate overflow-hidden">
-                                      Admin
-                                    </span>
-                                  )}
-                                </p>
 
-                                <p className="text-muted-foreground text-xs max-w-40 truncate overflow-x-hidden">{member.email ?? ""}</p>
-                              </div>
-                            </div>
+                {/* Group members */}
+                <div className="max-h-60 overflow-y-auto border rounded-lg p-2 space-y-2">
+                  <h3 className="text-sm font-semibold mb-2 ml-2">Manage Members</h3>
+                  {groupUserObjects.length === 0 ? (
+                    <p className="text-sm text-gray-500 py-2 text-center">No members available</p>
+                  ) : (
+                    groupUserObjects.map((member) => {
+                      const isProtected = member.id === currentUser?.id && groupAdmins?.includes(currentUser.id);
 
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleSelection(member.id, "groupAdmins", groupAdmins || []);
-                              }}
-                              className={clsx(
-                                `text-xs px-2 py-1 rounded-md font-medium hover:cursor-pointer`,
-                                groupAdmins?.includes(member.id) ? "bg-red-600 text-white hover:bg-red-700" : "bg-slate-700 text-white hover:bg-slate-900"
-                              )}>
-                              {groupAdmins?.includes(member.id) ? "Remove Admin" : "Make Admin"}
-                            </button>
-                          </label>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                ) : (
-                  <div className="max-h-60 overflow-y-auto border rounded-lg p-2 space-y-2">
-                    <h3 className="text-sm font-semibold mb-2 ml-2">Manage Members</h3>
-                    {group?.users.length === 0 ? (
-                      <p className="text-sm text-gray-500 py-2 text-center">No members available</p>
-                    ) : (
-                      group?.users.map((member) => (
-                        <div key={member.id} className="flex items-center p-2 hover:bg-gray-100 dark:hover:bg-gray-700/70 rounded-md">
+                      return (
+                        <div
+                          key={member.id}
+                          className={`flex items-center p-2 rounded-md ${!isProtected ? "hover:bg-gray-100 dark:hover:bg-gray-700/70" : "bg-gray-100 dark:bg-gray-800/40"}`}>
                           <label className="flex items-center w-full cursor-pointer relative">
-                            <Checkbox checked={groupUsers.includes(member.id)} onCheckedChange={() => toggleSelection(member.id, "users", groupUsers)} className="mr-3" />
+                            {!isProtected && (
+                              <Checkbox checked={groupUsers.includes(member.id)} onCheckedChange={() => toggleSelection(member.id, "users", groupUsers)} className="mr-3" />
+                            )}
                             <div className="flex items-center justify-start flex-1">
                               <Avatar className="h-9 w-9">
                                 <AvatarImage src={member.image || "/images/avatar.jpg"} />
@@ -488,24 +473,136 @@ export const EditProfile = ({ mode, user, group, onChange, open }: EditProfileOr
                             </div>
                           </label>
                         </div>
-                      ))
-                    )}
-                  </div>
-                )}
+                      );
+                    })
+                  )}
+                </div>
                 {errors && "users" in errors && <p className="text-sm text-red-500">{errors.users?.message as string}</p>}
                 {errors && "groupAdmins" in errors && <p className="text-sm text-red-500">{errors.groupAdmins?.message as string}</p>}
 
-                <div className="flex justify-between items-center bg-transparent outline outline-gray-500/30 rounded-lg py-3 px-4">
-                  <div className="space-y-2">
-                    <Label>Manage group admins?</Label>
-                    <p className="text-xs text-muted-foreground max-w-[95%]">Turn this on to assign or remove admin rights for group members.</p>
+                {/* Toggle button: select group admins */}
+                <div className="flex flex-col justify-between items-center bg-transparent outline outline-gray-500/30 rounded-lg py-3 px-4">
+                  {/* Header: Toggle Switch and Label */}
+                  <div className="flex w-full justify-between items-start">
+                    <div className="space-y-2 w-full">
+                      <Label>Manage Group Admins?</Label>
+                      <p className="text-xs text-muted-foreground max-w-[95%]">Enable this option to assign or remove admin privileges for group members.</p>
+                    </div>
+                    <Switch
+                      disabled={groupAdmins?.length === 0 || selectMoreUsers}
+                      checked={changeGroupAdmins}
+                      onCheckedChange={(checked) => setChangeGroupAdmins(checked)}
+                      className="cursor-pointer mt-1"
+                    />
                   </div>
-                  <Switch
-                    disabled={groupAdmins?.length === 0}
-                    checked={changeGroupAdmins}
-                    onCheckedChange={(checked) => setChangeGroupAdmins(checked)}
-                    className="cursor-pointer"
-                  />
+
+                  {/* Admins List */}
+                  {changeGroupAdmins && (
+                    <div className="mt-4 max-h-60 overflow-y-auto border rounded-lg p-2 space-y-2 w-full">
+                      <h3 className="text-sm font-semibold mb-2 ml-2">Manage Admins</h3>
+
+                      {group?.groupAdmins?.length === 0 ? (
+                        <p className="text-sm text-gray-500 py-2 text-center">No admins available</p>
+                      ) : (
+                        group?.users.map((member) => (
+                          <div key={member.id} className="flex items-center p-2 hover:bg-gray-100 dark:hover:bg-gray-700/70 rounded-md">
+                            <label className="flex items-center w-full cursor-pointer relative">
+                              {/* Avatar and Info */}
+                              <div className="flex items-center justify-start flex-1">
+                                <Avatar className="h-9 w-9">
+                                  <AvatarImage src={member.image || "/images/avatar.jpg"} />
+                                </Avatar>
+                                <div className="font-medium text-sm ml-3">
+                                  <p className="flex items-center gap-1 max-w-50 truncate overflow-hidden">
+                                    <span className="max-w-25 truncate overflow-hidden">{member.name}</span>
+                                    {groupAdmins?.includes(member.id) && (
+                                      <span className="leading-none bg-gray-500/30 px-1 py-0.5 rounded-lg text-muted-foreground text-xs max-w-25 truncate overflow-hidden">
+                                        Admin
+                                      </span>
+                                    )}
+                                  </p>
+                                  <p className="text-muted-foreground text-xs max-w-40 truncate overflow-x-hidden">{member.email ?? ""}</p>
+                                </div>
+                              </div>
+
+                              {/* Add/Remove Button */}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleSelection(member.id, "groupAdmins", groupAdmins || []);
+                                }}
+                                className={clsx(
+                                  "text-xs px-2 py-1 rounded-md font-medium hover:cursor-pointer",
+                                  groupAdmins?.includes(member.id) ? "bg-red-600 text-white hover:bg-red-700" : "bg-slate-700 text-white hover:bg-slate-900"
+                                )}>
+                                {groupAdmins?.includes(member.id) ? "Remove admin" : "Make admin"}
+                              </button>
+                            </label>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Toggle button: select more users for group */}
+                <div className="flex flex-col justify-between items-center bg-transparent outline outline-gray-500/30 rounded-lg py-3 px-4">
+                  {/* Header: Toggle Switch and Label */}
+                  <div className="flex w-full justify-between items-start">
+                    <div className="space-y-2 w-full">
+                      <Label>Add More Group Members</Label>
+                      <p className="text-xs text-muted-foreground max-w-[95%]">Turn this on to add more members in the group</p>
+                    </div>
+                    <Switch
+                      disabled={friends?.length === 0 || changeGroupAdmins}
+                      checked={selectMoreUsers}
+                      onCheckedChange={(checked) => setSelectMoreUsers(checked)}
+                      className="cursor-pointer mt-1"
+                    />
+                  </div>
+
+                  {/* Friends List */}
+                  {selectMoreUsers && (
+                    <div className="mt-4 max-h-60 overflow-y-auto border rounded-lg p-2 space-y-2 w-full">
+                      <h3 className="text-sm font-semibold mb-2 ml-2">Add more friends to group</h3>
+
+                      {adminFriendsList.length === 0 ? (
+                        <p className="text-sm text-gray-500 py-2 text-center">No friends available</p>
+                      ) : (
+                        adminFriendsList.map((friend) => (
+                          <div key={friend.id} className="flex items-center p-2 hover:bg-gray-100 dark:hover:bg-gray-700/70 rounded-md">
+                            <label className="flex items-center w-full cursor-pointer relative">
+                              {/* Avatar and Info */}
+                              <div className="flex items-center justify-start flex-1">
+                                <Avatar className="h-9 w-9">
+                                  <AvatarImage src={friend.image || "/images/avatar.jpg"} />
+                                </Avatar>
+                                <div className="font-medium text-sm ml-3">
+                                  <p className="max-w-50 truncate overflow-hidden">{friend.name}</p>
+                                  <p className="text-muted-foreground text-xs max-w-40 truncate overflow-x-hidden">{friend.email ?? ""}</p>
+                                </div>
+                              </div>
+
+                              {/* Add/Remove Button */}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleSelection(friend.id, "users", groupUsers || []);
+                                }}
+                                className={clsx(
+                                  "text-xs px-2 py-1 rounded-md font-medium hover:cursor-pointer",
+                                  groupUsers?.includes(friend.id) ? "bg-red-600 text-white hover:bg-red-700" : "bg-slate-700 text-white hover:bg-slate-900"
+                                )}>
+                                {groupUsers?.includes(friend.id) ? "Remove friend" : "Add to group"}
+                              </button>
+                            </label>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </>
