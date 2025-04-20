@@ -186,7 +186,7 @@ function SidebarComponent({ children, currentUser }: SidebarProps & React.Compon
         {(!isMobile || (isMobile && conversationId)) && (
           <SidebarInset className={`dark:bg-black bg-[#979dac] h-screen md:p-1.5`}>
             <div className={`dark:bg-[#212121] dark:text-slate-50 bg-[#fffbfe] text-black h-full md:rounded-lg`}>
-              <main className="overflow-hidden h-full flex flex-col">{children}</main>
+              <main className="overflow-hidden h-dvh flex flex-col">{children}</main>
             </div>
           </SidebarInset>
         )}

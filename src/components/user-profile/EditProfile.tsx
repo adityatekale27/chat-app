@@ -149,7 +149,7 @@ export const EditProfile = ({ mode, user, group, onChange, open }: EditProfileOr
   // Watch values
   const userImageUrl = watch("image");
   const groupAvatarUrl = watch("groupAvatar");
-  const groupUsers = watch("users");
+  const groupUsers = useMemo(() => watch("users") || [], [watch]);
   const groupAdmins = watch("groupAdmins");
 
   /* Admin friend list, exclude group members */
@@ -175,6 +175,7 @@ export const EditProfile = ({ mode, user, group, onChange, open }: EditProfileOr
     friends.map((f) => (f.sender.id === currentUser?.id ? f.receiver : f.sender)).forEach((u) => map.set(u.id, u));
     return map;
   }, [group?.users, friends, currentUser?.id]);
+
   // Gets full user objects for group user IDs using the lookup map.
   const groupUserObjects = useMemo(() => groupUsers.map((id) => usersById.get(id)).filter((u): u is User => !!u), [groupUsers, usersById]);
 

@@ -17,7 +17,14 @@ export function getPusherClient() {
       PusherClient.logToConsole = true;
     }
 
-    _client = new PusherClient(key, { cluster, forceTLS: true });
+    _client = new PusherClient(key, {
+      cluster,
+      forceTLS: true,
+      channelAuthorization: {
+        endpoint: "/api/pusher/",
+        transport: "ajax",
+      },
+    });
   }
 
   return _client!;

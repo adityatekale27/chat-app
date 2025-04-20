@@ -8,6 +8,9 @@ import { ProfileDrawer } from "../user-profile/ProfileDrawer";
 import ToolTip from "../others/Tooltip";
 import { usePresenceContext } from "@/contexts/PresenceContext";
 import { useRouter } from "next/navigation";
+import { useWebRTC } from "@/hooks/useWebRTC";
+import { VideoCallModal } from "@/components/VideoCallModel";
+import { IncomingCallBanner } from "@/components/IncomingCallBanner";
 
 /* Helper function to format the users last online */
 function formatLastOnline(date: Date): string {
@@ -49,10 +52,26 @@ function formatLastOnline(date: Date): string {
   });
 }
 
-const ChatHeaderComponent = ({ conversation, otherUser }: ChatHeaderProps) => {
+const ChatHeaderComponent = ({ conversation, otherUser, currentUserId }: ChatHeaderProps) => {
   const router = useRouter();
   const { onlineUsers } = usePresenceContext();
   const [openProfile, setOpenProfile] = useState(false);
+  const [currentCallType, setCurrentCallType] = useState<"AUDIO" | "VIDEO">("VIDEO");
+
+  const { startCall, answerCall, callActive, localStream, remoteStream, endCall, incomingOffer, toggleAudio, toggleVideo, peerState } = useWebRTC({
+    conversationId: conversation.id,
+    fromUserId: currentUserId ?? "",
+    toUserId: otherUser?.id ?? "",
+  });
+
+  const handleStartCall = (callType: "AUDIO" | "VIDEO") => {
+    setCurrentCallType(callType);
+    startCall(callType);
+  };
+
+  const handleAnswerCall = () => {
+    answerCall();
+  };
 
   return (
     <div className="p-3 sm:p-4 border-b bg-[#E5E7Eb] dark:bg-[#212529] flex justify-between items-center w-full rounded-t-lg shrink-0">
@@ -63,13 +82,13 @@ const ChatHeaderComponent = ({ conversation, otherUser }: ChatHeaderProps) => {
         </div>
 
         <div className="flex gap-2 items-center min-w-0">
-          <div className="inline-block rounded-full overflow-hidden h-10 w-10 shrink-0">
+          <div className="inline-block rounded-full overflow-hidden h-10 w-10 shrink-0 relative">
             <Image
               src={conversation.isGroup ? conversation.groupAvatar || "/images/avatar.jpg" : otherUser?.image || "/images/avatar.jpg"}
               alt={otherUser?.name || "User"}
               height={40}
               width={40}
-              className="object-conver rounded-full"
+              className="object-cover rounded-full"
               priority
             />
           </div>
@@ -86,28 +105,40 @@ const ChatHeaderComponent = ({ conversation, otherUser }: ChatHeaderProps) => {
       </div>
 
       {/* Audio and video call buttons and conversation options */}
-      <div className="flex items-center gap-2  shrink-0">
-        <ToolTip content="Audio call">
-          <div className="hover:bg-gray-500/50 p-1.5 rounded-lg cursor-pointer">
-            <Phone size={16} onClick={() => {}} />
-          </div>
-        </ToolTip>
+      <div className="flex items-center gap-2 shrink-0">
+        {!conversation.isGroup && (
+          <>
+            <ToolTip content="Audio call">
+              <div className="hover:bg-gray-500/50 p-1.5 rounded-lg cursor-pointer transition-colors" onClick={() => handleStartCall("AUDIO")}>
+                <Phone size={16} className="text-gray-700 dark:text-gray-300" />
+              </div>
+            </ToolTip>
 
-        <ToolTip content="Video call">
-          <div className="hover:bg-gray-500/50 p-1.5 rounded-lg cursor-pointer">
-            <Video size={19} onClick={() => {}} />
-          </div>
-        </ToolTip>
+            <ToolTip content="Video call">
+              <div className="hover:bg-gray-500/50 p-1.5 rounded-lg cursor-pointer transition-colors" onClick={() => handleStartCall("VIDEO")}>
+                <Video size={19} className="text-gray-700 dark:text-gray-300" />
+              </div>
+            </ToolTip>
+          </>
+        )}
 
         <ToolTip content="Options">
-          <div onClick={() => setOpenProfile(true)} className="hover:bg-gray-500/50 p-1 rounded-lg cursor-pointer">
-            <Ellipsis size={21} />
+          <div onClick={() => setOpenProfile(true)} className="hover:bg-gray-500/50 p-1 rounded-lg cursor-pointer transition-colors">
+            <Ellipsis size={21} className="text-gray-700 dark:text-gray-300" />
           </div>
         </ToolTip>
       </div>
 
       {/* Profile drawer */}
       {openProfile && otherUser && <ProfileDrawer isOpen={openProfile} trigger={openProfile} onClose={() => setOpenProfile(false)} data={conversation} />}
+
+      {/* Incoming call banner */}
+      {incomingOffer && !callActive && otherUser && <IncomingCallBanner otherUser={otherUser} onAccept={handleAnswerCall} onReject={endCall} callType={currentCallType} />}
+
+      {/* Video call modal */}
+      {callActive && (
+        <VideoCallModal localStream={localStream} remoteStream={remoteStream} onEndCall={endCall} onToggleAudio={toggleAudio} onToggleVideo={toggleVideo} peerState={peerState} />
+      )}
     </div>
   );
 };

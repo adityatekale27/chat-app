@@ -67,6 +67,7 @@ export interface MessageInputProps {
 export interface ChatHeaderProps {
   conversation: ConversationWithMessages;
   otherUser?: User;
+  currentUserId?: string;
 }
 
 export interface CloudinaryUploadResult {

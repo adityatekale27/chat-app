@@ -74,9 +74,11 @@ model Account {
 model Call {
      id String @id @default(auto()) @map("_id") @db.ObjectId
      type CallType @default(AUDIO)
-     status CallStatus @default(ONGOING)
+     status CallStatus @default(CONNECTING)
      startedAt DateTime @default(now())
      endedAt DateTime?
+     answeredAt DateTime?
+     duration Int?
      
      conversationId String @db.ObjectId
      conversation Conversation @relation(fields: [conversationId], references: [id])
@@ -87,6 +89,8 @@ model Call {
      calleeId String @db.ObjectId
      callee User @relation("CalleeCalls",fields: [calleeId], references: [id])
 
+     @@index([callerId])
+     @@index([calleeId])
      @@index([conversationId])
 }
 
@@ -96,6 +100,7 @@ enum CallType {
 }
 
 enum CallStatus {
+     CONNECTING
      ONGOING
      MISSED
      ENDED

@@ -155,7 +155,7 @@ const ChatPage = () => {
 
   return (
     <div className="h-[100dvh] w-full flex flex-col rounded-lg">
-      <ChatHeader conversation={currentConversation} otherUser={otherUser} />
+      <ChatHeader conversation={currentConversation} otherUser={otherUser} currentUserId={currentUser?.id} />
 
       <div className="flex-1 flex flex-col-reverse overflow-y-auto px-3 sm:px-4 py-5 sm:py-5 bg-[#fffbfe] dark:bg-[#171717]">
         {messages.length > 0 ? (
