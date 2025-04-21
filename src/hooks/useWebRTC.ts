@@ -23,7 +23,8 @@ export const useWebRTC = ({ conversationId, fromUserId, toUserId }: UseWebRTCPro
   const [incomingOffer, setIncomingOffer] = useState<string | SimplePeer.SignalData | null>(null);
   const [callActive, setCallActive] = useState(false);
   const [peerState, setPeerState] = useState<string>("");
-
+  const [incomingCallType, setIncomingCallType] = useState<"AUDIO" | "VIDEO">("VIDEO");
+  
   /* Create new peer */
   const createPeer = useCallback((isInitiator: boolean, stream: MediaStream) => {
     const newPeer = new SimplePeer({
@@ -95,7 +96,7 @@ export const useWebRTC = ({ conversationId, fromUserId, toUserId }: UseWebRTCPro
       if (!incomingOffer) throw new Error("No incoming offer to answer");
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: (incomingCallType === "VIDEO") });
       setLocalStream(stream);
       setPeerState("answering");
 
@@ -119,7 +120,7 @@ export const useWebRTC = ({ conversationId, fromUserId, toUserId }: UseWebRTCPro
     } catch (error) {
       console.log("answerCall error", error);
     }
-  }, [conversationId, createPeer, fromUserId, incomingOffer]);
+  }, [conversationId, createPeer, fromUserId, incomingCallType, incomingOffer]);
 
   /* End call */
   const endCall = useCallback(async () => {
@@ -175,11 +176,12 @@ export const useWebRTC = ({ conversationId, fromUserId, toUserId }: UseWebRTCPro
     const channel = pusherClient.subscribe(`private-call-${conversationId}`);
 
     // bind offer event
-    channel.bind("offer", (data: { offer: SimplePeer.SignalData; callId: string; fromUserId: string }) => {
+    channel.bind("offer", (data: { offer: SimplePeer.SignalData; callId: string; fromUserId: string; callType: "AUDIO" | "VIDEO" }) => {
       console.log("📞 Incoming offer:", data);
       setIncomingOffer(data.offer);
       callRef.current = data.callId;
 
+      setIncomingCallType(data.callType);
       timeoutRef.current = setTimeout(() => {
         console.log("call timeout - no answer");
         endCall();
@@ -203,18 +205,18 @@ export const useWebRTC = ({ conversationId, fromUserId, toUserId }: UseWebRTCPro
     });
 
     // bind candidate event
-    channel.bind("candidate", (data: { candidate: SimplePeer.SignalData; callId: string; fromUserId: string }) => {
-      console.log("🧩 ICE candidate received:", data);
+    // channel.bind("candidate", (data: { candidate: SimplePeer.SignalData; callId: string; fromUserId: string }) => {
+    //   console.log("🧩 ICE candidate received:", data);
 
-      // Only apply candidate if peer exists
-      if (peerRef.current) {
-        try {
-          peerRef.current.signal(data.candidate);
-        } catch (error) {
-          console.error("Error applying candidate:", error);
-        }
-      }
-    });
+    //   // Only apply candidate if peer exists
+    //   if (peerRef.current) {
+    //     try {
+    //       peerRef.current.signal(data.candidate);
+    //     } catch (error) {
+    //       console.error("Error applying candidate:", error);
+    //     }
+    //   }
+    // });
 
     // bind end call event
     channel.bind("call-ended", (data: { callId: string; fromUserId: string; status: string }) => {
@@ -232,7 +234,7 @@ export const useWebRTC = ({ conversationId, fromUserId, toUserId }: UseWebRTCPro
       pusherClient.unsubscribe(`private-call-${conversationId}`);
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
-  }, [conversationId, endCall, peerState, pusherClient]);
+  }, [conversationId, endCall, localStream, peerState, pusherClient]);
 
   return {
     incomingOffer,
@@ -245,5 +247,6 @@ export const useWebRTC = ({ conversationId, fromUserId, toUserId }: UseWebRTCPro
     toggleAudio,
     toggleVideo,
     peerState,
+    incomingCallType
   };
 };

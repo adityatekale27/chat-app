@@ -56,22 +56,12 @@ const ChatHeaderComponent = ({ conversation, otherUser, currentUserId }: ChatHea
   const router = useRouter();
   const { onlineUsers } = usePresenceContext();
   const [openProfile, setOpenProfile] = useState(false);
-  const [currentCallType, setCurrentCallType] = useState<"AUDIO" | "VIDEO">("VIDEO");
 
-  const { startCall, answerCall, callActive, localStream, remoteStream, endCall, incomingOffer, toggleAudio, toggleVideo, peerState } = useWebRTC({
+  const { incomingCallType, startCall, answerCall, callActive, localStream, remoteStream, endCall, incomingOffer, toggleAudio, toggleVideo, peerState } = useWebRTC({
     conversationId: conversation.id,
     fromUserId: currentUserId ?? "",
     toUserId: otherUser?.id ?? "",
   });
-
-  const handleStartCall = (callType: "AUDIO" | "VIDEO") => {
-    setCurrentCallType(callType);
-    startCall(callType);
-  };
-
-  const handleAnswerCall = () => {
-    answerCall();
-  };
 
   return (
     <div className="p-3 sm:p-4 border-b bg-[#E5E7Eb] dark:bg-[#212529] flex justify-between items-center w-full rounded-t-lg shrink-0">
@@ -109,13 +99,13 @@ const ChatHeaderComponent = ({ conversation, otherUser, currentUserId }: ChatHea
         {!conversation.isGroup && (
           <>
             <ToolTip content="Audio call">
-              <div className="hover:bg-gray-500/50 p-1.5 rounded-lg cursor-pointer transition-colors" onClick={() => handleStartCall("AUDIO")}>
+              <div className="hover:bg-gray-500/50 p-1.5 rounded-lg cursor-pointer transition-colors" onClick={() => startCall("AUDIO")}>
                 <Phone size={16} className="text-gray-700 dark:text-gray-300" />
               </div>
             </ToolTip>
 
             <ToolTip content="Video call">
-              <div className="hover:bg-gray-500/50 p-1.5 rounded-lg cursor-pointer transition-colors" onClick={() => handleStartCall("VIDEO")}>
+              <div className="hover:bg-gray-500/50 p-1.5 rounded-lg cursor-pointer transition-colors" onClick={() => startCall("VIDEO")}>
                 <Video size={19} className="text-gray-700 dark:text-gray-300" />
               </div>
             </ToolTip>
@@ -133,11 +123,20 @@ const ChatHeaderComponent = ({ conversation, otherUser, currentUserId }: ChatHea
       {openProfile && otherUser && <ProfileDrawer isOpen={openProfile} trigger={openProfile} onClose={() => setOpenProfile(false)} data={conversation} />}
 
       {/* Incoming call banner */}
-      {incomingOffer && !callActive && otherUser && <IncomingCallBanner otherUser={otherUser} onAccept={handleAnswerCall} onReject={endCall} callType={currentCallType} />}
+      {incomingOffer && !callActive && otherUser && <IncomingCallBanner otherUser={otherUser} onAccept={() => answerCall()} onReject={endCall} callType={incomingCallType} />}
 
       {/* Video call modal */}
-      {callActive && (
-        <VideoCallModal localStream={localStream} remoteStream={remoteStream} onEndCall={endCall} onToggleAudio={toggleAudio} onToggleVideo={toggleVideo} peerState={peerState} />
+      {callActive && otherUser && (
+        <VideoCallModal
+          otherUser={otherUser}
+          localStream={localStream}
+          remoteStream={remoteStream}
+          onEndCall={endCall}
+          onToggleAudio={toggleAudio}
+          onToggleVideo={toggleVideo}
+          peerState={peerState}
+          mode={incomingCallType}
+        />
       )}
     </div>
   );

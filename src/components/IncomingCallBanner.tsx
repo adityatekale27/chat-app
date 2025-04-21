@@ -20,7 +20,7 @@ export const IncomingCallBanner: React.FC<IncomingCallBannerProps> = ({ otherUse
     const timeout = setTimeout(() => {
       onReject();
       setHideCall(true);
-    }, 60000); // 60 seconds
+    }, 60000);
 
     const interval = setInterval(() => {
       setProgress((prev) => {
