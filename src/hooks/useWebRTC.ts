@@ -85,8 +85,11 @@ export const useWebRTC = () => {
         setLocalStream(stream);
         setPeerState("creating");
 
-        const initiatorPeer = createPeer(true, stream);
+        console.log('Stream', stream)
+        console.log("Audio tracks:", stream.getAudioTracks());
+        console.log("Video tracks:", stream.getVideoTracks());
 
+        const initiatorPeer = createPeer(true, stream);
         initiatorPeer.on("signal", async (data) => {
           if (data.type === "offer") {
             setPeerState("offering");

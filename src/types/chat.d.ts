@@ -77,7 +77,7 @@ export interface MessageInputProps {
 
 export interface ChatHeaderProps {
   conversation: ConversationWithMessages;
-  otherUser?: User;
+  otherUser?: User | null;
   currentUserId?: string;
 }
 

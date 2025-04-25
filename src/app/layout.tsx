@@ -41,7 +41,7 @@ export default async function RootLayout({
             <AuthProvider>
               <WebRTCProvider>
                 {currentUser && <PresenceManager currentUser={currentUser} />}
-                {currentUser && <CallManager currentUser={currentUser} />}
+                <CallManager />
                 <ToasterContext />
                 {children}
               </WebRTCProvider>

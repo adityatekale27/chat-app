@@ -15,7 +15,7 @@ interface VideoCallModalProps {
   endCallLoading: boolean;
 }
 
-export const VideoCallModal: React.FC<VideoCallModalProps> = ({
+export const CallModel: React.FC<VideoCallModalProps> = ({
   endCallLoading,
   otherUser,
   localStream,
@@ -28,6 +28,7 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
 }) => {
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  const remoteAudioRef = useRef<HTMLAudioElement>(null);
 
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
@@ -46,6 +47,13 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
   useEffect(() => {
     if (remoteVideoRef.current && remoteStream) {
       remoteVideoRef.current.srcObject = remoteStream;
+    }
+  }, [remoteStream]);
+
+  // Attach remote audio stream in audio element
+  useEffect(() => {
+    if (remoteAudioRef.current && remoteStream) {
+      remoteAudioRef.current.srcObject = remoteStream;
     }
   }, [remoteStream]);
 
@@ -150,6 +158,7 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
               <div className={`w-22 h-22 rounded-full border-4 mb-2 transition-all ${isLocalSpeaking ? "border-green-500 animate-pulse" : "border-white/10"}`} />
               <p className="text-white">You</p>
             </div>
+            <audio ref={remoteAudioRef} autoPlay />
           </div>
         )}
 

@@ -2,9 +2,9 @@
 
 import { useWebRTCContext } from "@/contexts/WebRTCContext";
 import { IncomingCallBanner } from "@/components/dialogs/IncomingCallBanner";
-import { VideoCallModal } from "@/components/dialogs/VideoCallModel";
+import { CallModel } from "@/components/dialogs/CallModel";
 
-export default function CallManager({ currentUser }: { currentUser: User }) {
+export default function CallManager() {
   const {
     endCallLoading,
     audioCallLoading,
@@ -22,7 +22,7 @@ export default function CallManager({ currentUser }: { currentUser: User }) {
     peerState,
   } = useWebRTCContext();
 
-  const isRealIncomingCall = incomingOffer && incomingUser && incomingUser.id !== currentUser?.id && !callActive;
+  const isRealIncomingCall = incomingOffer && incomingUser && !callActive;
 
   return (
     <>
@@ -41,7 +41,7 @@ export default function CallManager({ currentUser }: { currentUser: User }) {
 
       {/* Show video/audio call modal */}
       {callActive && incomingUser && (
-        <VideoCallModal
+        <CallModel
           endCallLoading={endCallLoading}
           otherUser={incomingUser}
           localStream={localStream}
