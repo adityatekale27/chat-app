@@ -6,39 +6,28 @@ import useChat from "@/hooks/useChat";
 import { UserBoxSkeleton } from "../loading-states/LoadingSkeleton";
 import Image from "next/image";
 import toast from "react-hot-toast";
-import { Prisma } from "@prisma/client";
 import { format } from "date-fns";
 import clsx from "clsx";
 import { usePresenceContext } from "@/contexts/PresenceContext";
 import { getPusherClient } from "@/libs/pusher/pusherClient";
-
-type Conversation = Prisma.ConversationGetPayload<{
-  include: {
-    users: true;
-    groupCreator: true;
-    messages: {
-      take: 1;
-      orderBy: { createdAt: "desc" };
-      include: { sender: true; seenMessage: true };
-    };
-  };
-}>;
 
 interface ChatSidebarProps {
   searchTerm: string;
   currentUser: User;
 }
 
-export const ChatSidebar = ({ currentUser, searchTerm }: ChatSidebarProps) => {
+export default function ChatSidebar({ currentUser, searchTerm }: ChatSidebarProps) {
   const router = useRouter();
   const { onlineUsers } = usePresenceContext();
   const { conversations, fetchConversations, loading, error } = useChat(currentUser.id);
   const [unseenMessage, setUnseenMessage] = useState<Record<string, number>>({});
 
+  // Fetch conversations based on serachTerm
   useEffect(() => {
     fetchConversations(searchTerm);
   }, [fetchConversations, searchTerm]);
 
+  // Display error message if there is an error
   useEffect(() => {
     if (error) toast.error(error);
   }, [error]);
@@ -70,7 +59,7 @@ export const ChatSidebar = ({ currentUser, searchTerm }: ChatSidebarProps) => {
   const getChatDetails = useMemo(
     () => (chat: Conversation) => {
       const isGroup = chat.isGroup;
-      const otherUser = isGroup ? null : chat.users.find((user) => user.id !== currentUser?.id);
+      const otherUser = isGroup ? null : chat.users.find((user: { id: string }) => user.id !== currentUser?.id);
 
       return {
         name: isGroup ? chat.name || "Group" : otherUser?.name || "User",
@@ -81,6 +70,7 @@ export const ChatSidebar = ({ currentUser, searchTerm }: ChatSidebarProps) => {
     [currentUser?.id, onlineUsers]
   );
 
+  // Set pusher for lastMessage
   useEffect(() => {
     const pusher = getPusherClient();
     const channel = pusher.subscribe(currentUser.id);
@@ -136,15 +126,8 @@ export const ChatSidebar = ({ currentUser, searchTerm }: ChatSidebarProps) => {
                 className="min-w-full relative flex items-center gap-3 p-3 rounded-lg transition cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 max-w-76 truncate">
                 <div className="relative">
                   {/* User or group image */}
-                  <div className="inline-block rounded-full overflow-hidden h-10 w-10">
-                    <Image
-                      src={image || "/images/avatar.jpg"}
-                      alt={name || "User"}
-                      height={40}
-                      width={40}
-                      className="object-cover rounded-full"
-                      priority={conversations.indexOf(chat) < 5}
-                    />
+                  <div className="relative inline-block rounded-full overflow-hidden h-10 w-10">
+                    <Image src={image || "/images/avatar.jpg"} alt={name || "User"} fill loading="lazy" className="object-cover rounded-full" />
                   </div>
                   {/* User online indicator */}
                   {!chat.isGroup && (
@@ -172,4 +155,4 @@ export const ChatSidebar = ({ currentUser, searchTerm }: ChatSidebarProps) => {
       )}
     </div>
   );
-};
+}

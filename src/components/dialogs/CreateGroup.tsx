@@ -13,7 +13,6 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import axios from "axios";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Label } from "../ui/label";
 
@@ -23,6 +22,7 @@ interface CreateGroupProps {
   currentUser: User;
 }
 
+// Group form schema
 const groupSchema = z.object({
   name: z.string().min(2, "Group name should be at least 2 characters").max(50),
   members: z.array(z.string()).min(2, "Select at least two members"),
@@ -39,15 +39,15 @@ const groupSchema = z.object({
     .transform((e) => (e === "" ? undefined : e)),
 });
 
-// variables for group avatar upload
+// Variables for group avatar upload
 const MAX_FILE_SIZE = 2 * 1024 * 1024;
 const VALID_FILE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/jpg"];
 
-export const CreateGroup = ({ isOpen, onClose, currentUser }: CreateGroupProps) => {
-  const router = useRouter();
+export default function CreateGroup ({ isOpen, onClose, currentUser }: CreateGroupProps) {
   const { friends } = useFriendRequests(currentUser.id);
   const [groupAvatarUploading, setGroupAvatarUploading] = useState(false);
 
+  // Get the actual friend list
   const friendsList = useMemo(() => {
     return friends.map((friend) => (friend.senderId === currentUser.id ? friend.receiver : friend.sender)).filter(Boolean) as User[];
   }, [currentUser.id, friends]);
@@ -69,11 +69,12 @@ export const CreateGroup = ({ isOpen, onClose, currentUser }: CreateGroupProps) 
     },
   });
 
+  // Watch form values
   const name = watch("name");
   const groupAvatar = watch("groupAvatar");
   const members = watch("members");
 
-  // members add handler
+  // Add or remove selected members
   const toggleMemberSelection = useCallback(
     (friend: User) => {
       const currentMembers = [...members];
@@ -90,7 +91,7 @@ export const CreateGroup = ({ isOpen, onClose, currentUser }: CreateGroupProps) 
     [members, setValue]
   );
 
-  // group avatar handler
+  // Hanlde group avatar image upload
   const handleGroupAvatar = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       try {
@@ -122,7 +123,7 @@ export const CreateGroup = ({ isOpen, onClose, currentUser }: CreateGroupProps) 
         setValue("groupAvatar", secure_url);
         toast.success("Group avatar photo updated!");
       } catch (error) {
-        console.log("Profile photo Upload error:", error);
+        console.error("Profile photo Upload error:", error);
         toast.error(error instanceof Error ? error.message : "Upload failed");
       } finally {
         setGroupAvatarUploading(false);
@@ -132,7 +133,7 @@ export const CreateGroup = ({ isOpen, onClose, currentUser }: CreateGroupProps) 
     [setValue]
   );
 
-  // group creataion handler
+  // Handle group creation
   const onSubmit = useCallback(
     async (data: z.infer<typeof groupSchema>) => {
       try {
@@ -145,7 +146,6 @@ export const CreateGroup = ({ isOpen, onClose, currentUser }: CreateGroupProps) 
         });
 
         toast.success("Group created successfully!");
-        router.refresh();
         onClose();
         reset();
       } catch (error) {
@@ -153,18 +153,18 @@ export const CreateGroup = ({ isOpen, onClose, currentUser }: CreateGroupProps) 
         console.log("Group creation error:", error);
       }
     },
-    [onClose, reset, router]
+    [onClose, reset]
   );
 
   return (
     <DialogBox isOpen={isOpen} onClose={onClose} trigger={isOpen} dialogTitle="Create group" dialogDescription="Start a new conversation with your friends in one place.">
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 mt-2">
         <div className="flex items-start gap-4">
-          {/* group avatar section */}
+          {/* Group avatar section */}
           <div className="flex flex-col items-center gap-2">
             <div className="relative h-16 w-16 rounded-full overflow-hidden border">
               {groupAvatarUploading ? (
-                <div className="h-full w-full flex items-center justify-center bg-gray-200 dark:bg-gray-500/50">
+                <div className="h-full w-full flex items-center justify-center bg-gray-200 dark:bg-gray-500/40">
                   <Loader2 className="h-5 w-5 animate-spin" />
                 </div>
               ) : (
@@ -172,14 +172,14 @@ export const CreateGroup = ({ isOpen, onClose, currentUser }: CreateGroupProps) 
               )}
             </div>
 
-            {/* profile photo upload button */}
+            {/* Group avatar upload button */}
             <input type="file" id="profile-upload" accept="image/*" className="hidden" onChange={handleGroupAvatar} disabled={groupAvatarUploading || isSubmitting} />
             <label htmlFor="profile-upload" className="dark:bg-tranparent hover:bg-gray-300/50 border px-3 py-1 text-sm dark:hover:bg-[#212121] cursor-pointer rounded-lg">
               Upload
             </label>
           </div>
 
-          {/* group name section*/}
+          {/* Group name section*/}
           <div className="flex-1 space-y-2  mt-1">
             <Label htmlFor="name">Group Name *</Label>
             <Input id="name" placeholder="Enter group name" {...register("name")} disabled={isSubmitting} />
@@ -188,14 +188,14 @@ export const CreateGroup = ({ isOpen, onClose, currentUser }: CreateGroupProps) 
           </div>
         </div>
 
-        {/* group bio section */}
+        {/* Group bio section */}
         <div className="space-y-2">
           <Label htmlFor="groupBio">Group Description</Label>
           <Input id="groupBio" placeholder="What's this group about?" {...register("groupBio")} disabled={isSubmitting} />
           {errors.groupBio && <p className="text-sm text-red-500">{errors.groupBio.message}</p>}
         </div>
 
-        {/* group members section section */}
+        {/* Group members section */}
         <div className="space-y-3">
           <div className="flex justify-between items-center">
             <Label>Select Members *</Label>
@@ -259,87 +259,3 @@ export const CreateGroup = ({ isOpen, onClose, currentUser }: CreateGroupProps) 
     </DialogBox>
   );
 };
-
-//     <DialogBox isOpen={isOpen} onClose={onClose} trigger={isOpen} dailogTitle="Create group" dialogDescription="Start a new conversation with your friends in one place.">
-//       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-//         {/* Group Name Input */}
-//         <div className="space-y-2">
-//           <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-100">
-//             Group Name
-//           </label>
-//           <Input id="name" placeholder="Enter group name" {...register("name")} disabled={isSubmitting} />
-//           {errors.name && <p className="text-sm text-red-500">{errors.name.message}</p>}
-//         </div>
-
-//         {/* Group Avatar Input */}
-//         <div className="space-y-2">
-//           <label htmlFor="groupAvatar" className="block text-sm font-medium text-gray-700 dark:text-gray-100">
-//             Group Avatar URL (optional)
-//           </label>
-//           <Input id="groupAvatar" placeholder="https://example.com/avatar.jpg" {...register("groupAvatar")} disabled={isSubmitting} />
-//           {errors.groupAvatar && <p className="text-sm text-red-500">{errors.groupAvatar.message}</p>}
-//         </div>
-
-//         {/* Group Bio Input */}
-//         <div className="space-y-2">
-//           <label htmlFor="groupBio" className="block text-sm font-medium text-gray-700 dark:text-gray-100">
-//             Group Bio (optional)
-//           </label>
-//           <Input id="groupBio" placeholder="Enter a short description for your group" {...register("groupBio")} disabled={isSubmitting} />
-//           {errors.groupBio && <p className="text-sm text-red-500">{errors.groupBio.message}</p>}
-//         </div>
-
-//         {/* Members Selection */}
-//         <div className="space-y-2">
-//           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Select Members ({members.length} selected)</label>
-//           {errors.members && <p className="text-sm text-red-500">{errors.members.message}</p>}
-
-//           <div className="max-h-60 overflow-y-auto border rounded-lg p-2 space-y-2">
-//             {friendsList.length === 0 ? (
-//               <p className="text-sm text-gray-500 py-2 text-center">No friends available</p>
-//             ) : (
-//               friendsList.map((friend) => (
-//                 <div
-//                   key={friend.id}
-//                   className="flex items-center p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors cursor-pointer"
-//                   onClick={() => toggleMemberSelection(friend)}>
-//                   <Checkbox checked={members.includes(friend.id)} onCheckedChange={() => toggleMemberSelection(friend)} className="mr-3" />
-//                   <Avatar className="h-9 w-9">
-//                     <AvatarImage src={friend.image || undefined} />
-//                     <AvatarFallback>{friend.name?.charAt(0).toUpperCase()}</AvatarFallback>
-//                   </Avatar>
-//                   <div className="ml-3">
-//                     <p className="text-sm font-medium">{friend.name}</p>
-//                     <p className="text-xs text-gray-500 dark:text-gray-400">@{friend.username}</p>
-//                   </div>
-//                 </div>
-//               ))
-//             )}
-//           </div>
-//         </div>
-
-//         {/* Action Buttons */}
-//         <div className="flex justify-end gap-2 pt-4">
-//           <Button
-//             type="button"
-//             variant="outline"
-//             onClick={() => {
-//               onClose();
-//               reset();
-//             }}
-//             disabled={isSubmitting}>
-//             Cancel
-//           </Button>
-//           <Button type="submit" disabled={isSubmitting || members.length === 0 || !name.trim()}>
-//             {isSubmitting ? (
-//               <>
-//                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-//                 Creating...
-//               </>
-//             ) : (
-//               "Create Group"
-//             )}
-//           </Button>
-//         </div>
-//       </form>
-//     </DialogBox>

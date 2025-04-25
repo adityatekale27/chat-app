@@ -23,17 +23,28 @@ export async function POST(request: NextRequest) {
         status: "CONNECTING",
       },
     });
-
-    console.log(`Call offer created: ${call.id} from ${fromUserId} to ${toUserId} in ${conversationId}`);
+    
+    const participants = await prisma.conversation.findUnique({
+      where: { id: conversationId },
+      include: { users: true },
+    });
 
     /* Trigger pusher event for offer on private call with conversation id */
-    await pusherServer.trigger(`private-call-${conversationId}`, "offer", {
-      offer,
-      callId: call.id,
-      fromUserId,
-      callType,
-      status: call.status,
-    });
+    if (participants) {
+      await Promise.all(
+        participants?.users.map((user) =>
+          pusherServer.trigger(`private-user-${user.id}`, "offer", {
+            offer,
+            callId: call.id,
+            fromUserId,
+            callType,
+            conversationId,
+            status: call.status,
+            user
+          })
+        )
+      );
+    }
 
     return NextResponse.json({ callId: call.id, status: call.id }, { status: 200 });
   } catch (error) {

@@ -13,7 +13,7 @@ import toast from "react-hot-toast";
 import axios from "axios";
 import { ConfirmationDialog } from "../dialogs/ConfirmationDialog";
 import { usePathname, useRouter } from "next/navigation";
-import { EditProfile } from "./EditProfile";
+import EditProfile from "./EditProfile";
 import { Card } from "@/components/ui/card";
 import clsx from "clsx";
 
@@ -29,7 +29,7 @@ const ProfileDrawerComponent = ({ isOpen, onClose, trigger, data }: ProfileDrawe
   const router = useRouter();
   const pathname = usePathname();
   const currentUser = session?.user;
-  const { cancelFriendRequest, isLoading, error, friends, fetchOtherUserFriends, otherUserFriends } = useFriendRequests(currentUser?.id ?? "");
+  const { cancelFriendRequest, isLoading, error, friends, fetchOtherUserFriends, otherUserFriends, isFriendWith } = useFriendRequests(currentUser?.id ?? "");
 
   const [showGroupEdit, setShowGroupEdit] = useState(false);
   const [showAllMembers, setShowAllMembers] = useState(false);
@@ -73,11 +73,7 @@ const ProfileDrawerComponent = ({ isOpen, onClose, trigger, data }: ProfileDrawe
   );
 
   /* Check if other user is still a friend */
-  const isFriendStill = useMemo(() => {
-    return friends.some(
-      (friend) => (friend.sender.id === currentUser?.id && friend.receiver.id === otherUser?.id) || (friend.receiver.id === currentUser?.id && friend.sender.id === otherUser?.id)
-    );
-  }, [currentUser?.id, friends, otherUser?.id]);
+  const isFriendStill = isFriendWith(otherUser?.id ?? "");
 
   /* Show limited or all group members */
   const displayedMembers = useMemo(() => {
@@ -86,8 +82,8 @@ const ProfileDrawerComponent = ({ isOpen, onClose, trigger, data }: ProfileDrawe
 
   /* Show limited or all other users friends */
   const otherUsersFriendsDisplay = useMemo(() => {
-    return otherUserFriends?.slice(0, showAllFriends ? otherUserFriends.length : 4)
-  },[otherUserFriends, showAllFriends])
+    return otherUserFriends?.slice(0, showAllFriends ? otherUserFriends.length : 4);
+  }, [otherUserFriends, showAllFriends]);
 
   // Handler to start a conversation from mutual friends
   const handleFriendClick = useCallback(
@@ -199,16 +195,16 @@ const ProfileDrawerComponent = ({ isOpen, onClose, trigger, data }: ProfileDrawe
                   <Image
                     src={data.isGroup ? data.groupAvatar || "/images/avatar.jpg" : otherUser?.image || "/images/avatar.jpg"}
                     alt={data.isGroup ? data.name || "Group" : otherUser?.name || "Profile"}
-                    fill
                     className="rounded-full object-cover"
+                    fill
                     priority
                   />
                 </div>
 
-                <div className="text-center space-y-1">
+                <div className="text-center">
                   <h2 className="text-lg font-bold text-foreground">{data.isGroup ? data.name : otherUser?.name || "User"}</h2>
                   <p className="text-xs text-muted-foreground">
-                    {data.isGroup && data.groupCreator ? `Created by: ${data.groupCreator.name}` : otherUser?.username ? `${otherUser?.username}` : ""}
+                    {data.isGroup && data.groupCreator ? `Created by: ${data.groupCreator.name}` : otherUser?.username ? `@${otherUser?.username}` : ""}
                   </p>
                 </div>
               </div>
@@ -253,7 +249,7 @@ const ProfileDrawerComponent = ({ isOpen, onClose, trigger, data }: ProfileDrawe
                         <div key={user.id} className="flex items-center justify-between gap-3 px-3 py-2 rounded-md bg-gray-300/30 dark:bg-[#212121]">
                           <div className="flex items-center gap-2">
                             <div className="relative h-8 w-8">
-                              <Image src={user.image || "/images/avatar.jpg"} alt={user.name || "Member"} fill className="rounded-full object-cover" />
+                              <Image src={user.image || "/images/avatar.jpg"} alt={user.name || "Member"} fill loading="lazy" className="rounded-full object-cover" />
                             </div>
                             <div className="font-medium text-sm">
                               <p className="flex items-center gap-1 max-w-50 truncate overflow-hidden">
@@ -317,7 +313,7 @@ const ProfileDrawerComponent = ({ isOpen, onClose, trigger, data }: ProfileDrawe
                             onClick={isMutualFriend(user.id) ? () => handleFriendClick(user.id) : undefined}>
                             <div className="flex items-center gap-2">
                               <div className="relative h-8 w-8">
-                                <Image src={user.image || "/images/avatar.jpg"} alt={user.name || "Member"} fill className="rounded-full object-cover" />
+                                <Image src={user.image || "/images/avatar.jpg"} alt={user.name || "Member"} fill loading="lazy" className="rounded-full object-cover" />
                               </div>
                               <div className="font-medium text-sm">
                                 <p className="flex items-center gap-1 max-w-50 truncate overflow-hidden">

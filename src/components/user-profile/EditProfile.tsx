@@ -101,7 +101,7 @@ type GroupFormData = z.infer<typeof groupSchema>;
 const MAX_FILE_SIZE = 2 * 1024 * 1024;
 const VALID_FILE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/jpg"];
 
-export const EditProfile = ({ mode, user, group, onChange, open }: EditProfileOrGroupProps) => {
+export default function EditProfile({ mode, user, group, onChange, open }: EditProfileOrGroupProps) {
   const { data: session, update } = useSession();
   const currentUser = session?.user;
   const { friends } = useFriendRequests(currentUser?.id ?? "");
@@ -113,7 +113,7 @@ export const EditProfile = ({ mode, user, group, onChange, open }: EditProfileOr
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [addNewPassword, setAddNewPassword] = useState(false);
 
-  // Choose schema and default values based on mode
+  // Schema and default values based on mode
   const schema = mode === "user" ? userSchema : groupSchema;
   const defaultValues =
     mode === "user"
@@ -636,7 +636,7 @@ export const EditProfile = ({ mode, user, group, onChange, open }: EditProfileOr
       </CardContent>
     </>
   );
-};
+}
 
 /* Generic form field component */
 const ProfileField = <T extends Record<string, unknown>>({

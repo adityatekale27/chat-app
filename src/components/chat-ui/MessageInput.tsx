@@ -4,13 +4,12 @@ import { Paperclip, Send, Loader2, X } from "lucide-react";
 import { CldUploadButton } from "next-cloudinary";
 import { MessageInputProps } from "@/types/chat";
 import ToolTip from "../others/Tooltip";
-import { FormError } from "@/components/auth/FormError";
 import React from "react";
 
 const MessageInputComponent = ({ message, fileUploading, msgSending, uploadError, onSend, onFileUpload, onInputChange, onClearError }: MessageInputProps) => {
   return (
     <>
-      <div className={`p-2 md:mb-3 md:p-3 border-t border-t-gray-500/50 flex items-center space-x-2 justify-between bg-[#E5E7EB]/40 dark:bg-[#171717] rounded-b-lg shrink-0 `}>
+      <div className={`py-3 px-2 md:mb-3 md:p-3 border-t border-t-gray-500/50 flex items-center space-x-2 justify-between bg-[#E5E7EB]/40 dark:bg-[#171717] rounded-b-lg shrink-0 `}>
         {/* file upload cloudinary button */}
         <ToolTip content="Send file">
           <CldUploadButton
@@ -25,7 +24,7 @@ const MessageInputComponent = ({ message, fileUploading, msgSending, uploadError
               cropping: false,
               showPoweredBy: false,
             }}
-            onUpload={onFileUpload}
+            onSuccess={onFileUpload}
             onError={(error: Error) => {
               onClearError();
               onFileUpload({ error });
@@ -56,20 +55,13 @@ const MessageInputComponent = ({ message, fileUploading, msgSending, uploadError
 
         {/* error message for file upload failure */}
         {uploadError && (
-          <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2">
-            <FormError message={uploadError} />
+          <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 bg-red-100 dark:bg-red-800/80 text-red-800 dark:text-red-200 px-4 py-2 rounded-md flex justify-center items-center space-x-2">
+            <span>{uploadError}</span>{" "}
             <button onClick={onClearError}>
-              <X className="h-4 w-4" />
-            </button>
+              <X className="h-4 w-4" />{" "}
+            </button>{" "}
           </div>
         )}
-
-        {/* <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-100 px-4 py-2 rounded-md flex justify-center items-center space-x-2">
-          <span>{uploadError}</span>{" "}
-          <button onClick={onClearError}>
-            <X className="h-4 w-4" />{" "}
-          </button>{" "}
-        </div> */}
       </div>
     </>
   );

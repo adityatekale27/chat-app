@@ -25,7 +25,7 @@ interface FindFriendProps {
   currentUser: User;
 }
 
-export function FindFriend({ isOpen, onClose, trigger, currentUser }: FindFriendProps) {
+export default function FindFriend({ isOpen, onClose, trigger, currentUser }: FindFriendProps) {
   const isMobile = useIsMobile();
   const [searchFriendTerm, setSearchFriendTerm] = useState("");
   const [showRequestNumbers, setShowRequestNumbers] = useState(false);
@@ -125,11 +125,10 @@ export function FindFriend({ isOpen, onClose, trigger, currentUser }: FindFriend
               <ScrollArea className="max-h-60 overflow-y-auto w-full rounded-lg border mt-4">
                 <div ref={containerRef}>
                   {isItLoading ? (
-                    // loading skeleton
                     <div className="space-y-4 p-4">
                       <UserBoxSkeleton freq={6} />
                     </div>
-                  ) : allUsers?.length > 0 ? (
+                  ) : filteredUsers?.length !== 0 ? (
                     filteredUsers.map((user, index) => {
                       // check if the request has been sent
                       const hasSentRequest = sentRequests.some((req) => req.receiver && req.receiver?.id === user?.id);

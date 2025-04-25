@@ -21,11 +21,11 @@ interface ContactSidebarProps {
   } | null;
 }
 
-const ContactSidebarComponent = ({ currentUser, searchTerm }: ContactSidebarProps) => {
+export default function ContactSidebar({ currentUser, searchTerm }: ContactSidebarProps) {
   const router = useRouter();
-  const { friends, isLoading, error, containerRef, cancelFriendRequest } = useFriendRequests(currentUser?.id ?? "", searchTerm);
   const [unfriendUserId, setUnfriendUserId] = useState<string | null>(null);
   const [unfriendLoading, setUnfriendLoading] = useState(false);
+  const { friends, isLoading, error, containerRef, cancelFriendRequest } = useFriendRequests(currentUser?.id ?? "", searchTerm);
 
   // Show error if available
   useEffect(() => {
@@ -39,7 +39,7 @@ const ContactSidebarComponent = ({ currentUser, searchTerm }: ContactSidebarProp
         const { data } = await axios.post("/api/chat", { userId });
         router.push(`/chat/${data.id}`);
       } catch (error: unknown) {
-        console.log("Error starting chat:", error);
+        console.error("Error starting chat:", error);
         if (axios.isAxiosError(error)) {
           toast.error(error.response?.data?.message || "Failed to start conversation!");
         } else {
@@ -57,7 +57,7 @@ const ContactSidebarComponent = ({ currentUser, searchTerm }: ContactSidebarProp
         setUnfriendLoading(true);
         await cancelFriendRequest(otherUserId);
       } catch (error: unknown) {
-        console.log("handleFriend error:", error);
+        console.error("handleFriend error:", error);
         if (axios.isAxiosError(error)) {
           toast.error(error.response?.data?.message || "Failed to unfriend user");
         } else {
@@ -103,7 +103,7 @@ const ContactSidebarComponent = ({ currentUser, searchTerm }: ContactSidebarProp
                   {/* Name and bio */}
                   <div className="flex-1 min-w-0 flex flex-col justify-between items-start">
                     <p className="font-medium truncate max-w-[99%]">{user.name ?? "User"}</p>
-                    {user.bio && <p className="text-sm text-gray-500 truncate max-w-[98%]">{user.bio}</p>}
+                    {user.bio && <p className="text-sm text-gray-500 truncate max-w-[95%]">{user.bio}</p>}
                   </div>
                 </div>
 
@@ -145,7 +145,7 @@ const ContactSidebarComponent = ({ currentUser, searchTerm }: ContactSidebarProp
 
                 {/* Unfriend confirmation dialog */}
                 <ConfirmationDialog
-                  open={!!unfriendUserId}
+                  open={unfriendUserId === user.id}
                   loading={unfriendLoading}
                   title={`Unfriend ${user.name}?`}
                   description="This will remove them from your friends list but keep your conversation history."
@@ -161,6 +161,4 @@ const ContactSidebarComponent = ({ currentUser, searchTerm }: ContactSidebarProp
       )}
     </div>
   );
-};
-
-export const ContactSidebar = React.memo(ContactSidebarComponent, (prev, next) => prev.currentUser?.id === next.currentUser?.id && prev.searchTerm === next.searchTerm);
+}

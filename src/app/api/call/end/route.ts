@@ -38,14 +38,23 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    console.log(`Call ended: ${callId} by ${fromUserId}, duration: ${duration || "not connected"} seconds`);
-
-    /* Notify other party that call has ended */
-    await pusherServer.trigger(`private-call-${conversationId}`, "call-ended", {
-      callId,
-      fromUserId,
-      status: updatedCall.status,
+    const participants = await prisma.conversation.findUnique({
+      where: { id: conversationId },
+      include: { users: true },
     });
+
+    /* Trigger pusher event for offer on private call with conversation id */
+    if (participants) {
+      await Promise.all(
+        participants?.users.map((user) =>
+          pusherServer.trigger(`private-user-${user.id}`, "call-ended", {
+            callId,
+            fromUserId,
+            status: updatedCall.status,
+          })
+        )
+      );
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

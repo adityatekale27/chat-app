@@ -157,11 +157,37 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ message: "User does not exists" }, { status: 400 });
     }
 
+    // Fetch all friend to trigger pusher event
+    const friends = await prisma.contact.findMany({
+      where: { OR: [{ senderId: userId }, { receiverId: userId }] },
+      include: { sender: true, receiver: true },
+    });
+    const allFriendsIds = new Set<string>();
+    friends.forEach((f) => {
+      if (f.senderId !== userId) allFriendsIds.add(f.senderId);
+      if (f.receiverId !== userId) allFriendsIds.add(f.receiverId);
+    });
+
     /* Transaction to delete all user related data */
     await prisma.$transaction([
       // delete all user messages
       prisma.message.deleteMany({
         where: { senderId: userId },
+      }),
+
+      // delete all user calls
+      prisma.call.deleteMany({
+        where: {
+          OR: [
+            { calleeId: userId },
+            { callerId: userId },
+            {
+              conversation: {
+                userIds: { has: userId },
+              },
+            },
+          ],
+        },
       }),
 
       // remove user from all conversations
@@ -203,7 +229,11 @@ export async function DELETE(request: NextRequest) {
     response.headers.set("x-auth-redirect", "/");
 
     // Trigger pusher event for user delete
-    await pusherServer.trigger("userUpdate", "user:deleted", { userId });
+    await Promise.all(
+      Array.from(allFriendsIds).map((id) => {
+        pusherServer.trigger(`user:${id}`, "user:deleted", { userId });
+      })
+    );
 
     return response;
   } catch (error) {

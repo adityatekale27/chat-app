@@ -12,18 +12,18 @@ interface UseInfiniteScrollProps {
  * triggers `onLoadMore` when user scrolls near the bottom of the container
  */
 export function useInfiniteScroll({ onLoadMore, hasMore, isLoading, threshold = 100 }: UseInfiniteScrollProps) {
-  /* ref to attach the scrollable container */
+  /* Ref to attach the scrollable container */
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    /* handler to manage scroll event */
+    /* Handler to manage scroll event */
     const handleScroll = () => {
       const { scrollTop, scrollHeight, clientHeight } = container;
 
-      // check if we are within threshold pixels
+      // Check if we are within threshold pixels
       if (scrollHeight - scrollTop - clientHeight < threshold && hasMore && !isLoading) {
         onLoadMore();
       }

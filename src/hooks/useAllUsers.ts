@@ -81,7 +81,7 @@ export function useAllUsers(searchFriendTerm: string) {
     return () => clearTimeout(delayDebounce);
   }, [searchFriendTerm, fetchUsers]);
 
-  /* Hook to hanlde scroll behavior */
+  /* Hook to handle scroll behavior */
   const { containerRef } = useInfiniteScroll({
     onLoadMore: fetchUsers,
     hasMore,

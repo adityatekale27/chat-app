@@ -1,10 +1,14 @@
 "use client";
 
 import { ConversationWithMessages, MessageWithSender } from "@/types/chat";
-import React, { useMemo } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import clsx from "clsx";
 import { MessageOptions } from "./MessageOptions";
 import { CldImage } from "next-cloudinary";
+import ToolTip from "../others/Tooltip";
+import Image from "next/image";
+import { Download, X } from "lucide-react";
+import toast from "react-hot-toast";
 
 interface MessageListProps {
   messages: MessageWithSender[];
@@ -49,6 +53,31 @@ function formatChatDate(date: Date) {
 }
 
 const MessageListComponent = ({ messages, currentUserId, onDelete, msgDeleting, otherUserOnline, currentConversation }: MessageListProps) => {
+  const [previewOpen, setPreviewOpen] = useState("");
+
+  /* Image download handler */
+  const handleFileDownload = useCallback((messageURL: string) => {
+    if (!messageURL) return;
+
+    const urlParts = messageURL.split("/");
+    const uploadIndex = urlParts.findIndex((part) => part === "upload");
+    const publicId = urlParts
+      .slice(uploadIndex + 2)
+      .join("/")
+      .split(".")[0];
+
+    const downloadUrl = messageURL.replace(/upload\/.*\//, "upload/fl_attachment/");
+
+    const link = document.createElement("a");
+    link.href = downloadUrl;
+    link.download = `download-${publicId.split("/").pop()}`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast.success("File downloading!");
+  }, []);
+
   // Get and memoize unique messages
   const uniqueMessages = useMemo(() => {
     return [...new Map(messages.map((msg) => [msg.id, msg])).values()];
@@ -73,12 +102,12 @@ const MessageListComponent = ({ messages, currentUserId, onDelete, msgDeleting, 
             <div className={`relative flex ${msg.sender?.id === currentUserId ? "justify-end" : "justify-start"}`}>
               <div
                 className={clsx(
-                  "px-3 py-2 rounded-xl max-w-sm shadow",
+                  "px-3 py-2 rounded-xl md:max-w-sm max-w-xs shadow",
                   msg.sender?.id === currentUserId ? "dark:bg-slate-800 bg-slate-800/80 text-white" : "bg-gray-200 dark:bg-gray-700 text-black dark:text-white"
                 )}>
                 {/* Display image attachment from message (if available) */}
                 {msg.imageUrl && (
-                  <div className="mb-1.5 mt-1 pr-2 rounded-lg overflow-hidden w-full max-w-sm h-49">
+                  <div onClick={() => setPreviewOpen(msg.id)} className="mb-1.5 mt-1 pr-2 rounded-lg overflow-hidden w-full max-w-sm h-49 hover:cursor-pointer">
                     <CldImage
                       src={msg.imageUrl}
                       alt="Message attachment"
@@ -130,7 +159,43 @@ const MessageListComponent = ({ messages, currentUserId, onDelete, msgDeleting, 
               </div>
 
               {/* Message options */}
-              <MessageOptions message={msg} msgDeleting={msgDeleting} onDelete={onDelete} currentUserId={currentUserId || ""} seenList={msg.seenMessage!} />
+              <MessageOptions
+                message={msg}
+                msgDeleting={msgDeleting}
+                setView={() => setPreviewOpen(msg.id)}
+                onDelete={onDelete}
+                setDownload={() => handleFileDownload(msg.imageUrl ?? "")}
+                currentUserId={currentUserId || ""}
+                seenList={msg.seenMessage!}
+              />
+
+              {/* File preview */}
+              {previewOpen === msg.id && (
+                <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4 overflow-auto">
+                  <div className="relative w-full max-w-4xl h-full max-h-[90vh] flex flex-col">
+                    <div className="flex-1 relative">
+                      <Image src={msg.imageUrl ?? ""} alt="File Preview" fill className="object-contain" quality={100} priority />
+                    </div>
+                    <div className="flex justify-center items-center gap-3 mt-4">
+                      {/* download button */}
+                      <ToolTip content="Download">
+                        <button
+                          onClick={() => handleFileDownload(msg.imageUrl ?? "")}
+                          className="p-2 bg-slate-800 text-white rounded-lg hover:bg-blue-600/80 transition-colors cursor-pointer">
+                          <Download size={18} />
+                        </button>
+                      </ToolTip>
+
+                      {/* close button */}
+                      <ToolTip content="Close">
+                        <button onClick={() => setPreviewOpen("")} className="p-1 bg-gray-600/70 hover:bg-red-500 text-white rounded-full transition-colors cursor-pointer">
+                          <X size={22} />
+                        </button>
+                      </ToolTip>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         );

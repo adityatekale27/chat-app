@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Conversation as PrismaConversation, Message as PrismaMessage, User as PrismaUser } from "@prisma/client";
+import { Conversation, Message, User as PrismaUser } from "@prisma/client";
 
 declare global {
   type User = Omit<PrismaUser, "hashedPassword"> & {
@@ -15,20 +15,30 @@ declare global {
     updatedAt: Date;
   };
 
-  type Conversation = PrismaConversation & {
-    users: User[];
-    groupAdmins?: User[];
-    groupCreator?: User;
-    messages?: Message[];
-  };
+  type Conversation = Prisma.ConversationGetPayload<{
+    include: {
+      users: true;
+      groupAdmins?: true;
+      groupCreator?: true;
+      messages?: {
+        orderBy: { createdAt: "desc" };
+        take: 1;
+        include: { sender: true; seenMessage: true };
+      };
+    };
+  }>;
 
-  type Message = PrismaMessage & {
-    sender?: User;
-    seenMessage?: User[];
-  };
+  type Message = Prisma.MessageGetPayload<{
+    include: { sender: true; seenMessage: true };
+  }>;
+
+  type Call = Prisma.CallGetPlayload<{
+    include: { calle: true; caller: true };
+  }>;
 }
 
 export interface MessageWithSender extends Message {
+  seenMessage?: User[];
   sender: User;
 }
 
@@ -36,6 +46,7 @@ export interface ConversationWithMessages extends Conversation {
   id: string;
   name: string | null;
   isGroup: boolean;
+  users: User[];
   groupCreator?: User | null;
   groupAdmins?: User[];
   messages: Message[];

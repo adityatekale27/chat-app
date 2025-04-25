@@ -1,6 +1,7 @@
 "use client";
+
 import React, { useRef, useEffect, useState } from "react";
-import { Mic as MicrophoneIcon, MicOff as MicrophoneOffIcon, Video as VideoIcon, VideoOff as VideoOffIcon, PhoneOff as PhoneOffIcon } from "lucide-react";
+import { Mic as MicrophoneIcon, MicOff as MicrophoneOffIcon, Video as VideoIcon, VideoOff as VideoOffIcon, PhoneOff as PhoneOffIcon, Loader2 } from "lucide-react";
 
 interface VideoCallModalProps {
   localStream: MediaStream | null;
@@ -11,29 +12,44 @@ interface VideoCallModalProps {
   peerState?: string;
   mode?: "VIDEO" | "AUDIO";
   otherUser: User;
+  endCallLoading: boolean;
 }
 
-export const VideoCallModal: React.FC<VideoCallModalProps> = ({ otherUser, localStream, remoteStream, onEndCall, onToggleAudio, onToggleVideo, peerState, mode = "VIDEO" }) => {
+export const VideoCallModal: React.FC<VideoCallModalProps> = ({
+  endCallLoading,
+  otherUser,
+  localStream,
+  remoteStream,
+  onEndCall,
+  onToggleAudio,
+  onToggleVideo,
+  peerState,
+  mode = "VIDEO",
+}) => {
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
+
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
   const [callDuration, setCallDuration] = useState(0);
   const [isLocalSpeaking, setIsLocalSpeaking] = useState(false);
   const [isRemoteSpeaking, setIsRemoteSpeaking] = useState(false);
 
+  // Attach local stream to video element
   useEffect(() => {
     if (localVideoRef.current && localStream) {
       localVideoRef.current.srcObject = localStream;
     }
   }, [localStream]);
 
+  // Attach remote stream to video element
   useEffect(() => {
     if (remoteVideoRef.current && remoteStream) {
       remoteVideoRef.current.srcObject = remoteStream;
     }
   }, [remoteStream]);
 
+  // Track call duration
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
 
@@ -50,27 +66,40 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({ otherUser, local
     };
   }, [peerState]);
 
+  // Detect speech activity in a stream
   const detectSpeech = (stream: MediaStream, setSpeaking: (val: boolean) => void) => {
     const audioCtx = new AudioContext();
     const analyser = audioCtx.createAnalyser();
     const source = audioCtx.createMediaStreamSource(stream);
     source.connect(analyser);
     const data = new Uint8Array(analyser.frequencyBinCount);
+    let isMounted = true;
 
     const update = () => {
+      if (!isMounted) return;
       analyser.getByteFrequencyData(data);
       const volume = data.reduce((a, b) => a + b, 0) / data.length;
       setSpeaking(volume > 25);
       requestAnimationFrame(update);
     };
+
     update();
+
+    return () => {
+      isMounted = false;
+      source.disconnect();
+      analyser.disconnect();
+      audioCtx.close();
+    };
   };
 
+  // Start voice detection when streams are available
   useEffect(() => {
     if (localStream) detectSpeech(localStream, setIsLocalSpeaking);
     if (remoteStream) detectSpeech(remoteStream, setIsRemoteSpeaking);
   }, [localStream, remoteStream]);
 
+  // Format duration
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
       .toString()
@@ -149,7 +178,7 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({ otherUser, local
           )}
 
           <button onClick={onEndCall} className="hover:cursor-pointer bg-red-600 hover:bg-red-700 rounded-full p-3 transition-transform hover:scale-110">
-            <PhoneOffIcon className="w-5 h-5 text-white" />
+            {endCallLoading ? <Loader2 className="animate-spin h-5 w-5" /> : <PhoneOffIcon className="w-5 h-5 text-white" />}
           </button>
         </div>
 

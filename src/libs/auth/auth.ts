@@ -33,7 +33,7 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Invalid credentials");
         }
 
-        /* rate limiter for login */
+        /* Rate limiter for login (attempts 3, time 10sec) */
         const loginAllowed = checkRateLimit({
           key: credentials.email,
           type: "login",
@@ -45,7 +45,7 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Too many login attempts");
         }
 
-        /* check if the user exists in db */
+        /* Check if the user exists in db */
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
         });
@@ -54,14 +54,14 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Invalid credentials");
         }
 
-        /* check if the password is correct or not */
+        /* Check if the password is correct or not */
         const isValidPassword = await bcrypt.compare(credentials.password, user.hashedPassword);
 
         if (!isValidPassword) {
           throw new Error("Invalid credentials");
         }
 
-        /* reset the rate limiter */
+        /* Reset the rate limiter (after login) */
         resetRateLimit({
           key: credentials.email,
           type: "login",
@@ -87,13 +87,13 @@ export const authOptions: NextAuthOptions = {
     async signIn({ user, account }) {
       if (!user || !account) return false;
 
-      // check if the user exists in db and also include oauth accounts (if available)
+      // Check if the user exists in db and also include oauth accounts (if available)
       const existingUser = await prisma.user.findUnique({
         where: { email: user.email ?? undefined },
         include: { accounts: true },
       });
 
-      // if yes, then check for the current oauth provider is already linked to user and if not then create new one
+      // If yes, then check for the current oauth provider is already linked to user and if not then create new one
       if (existingUser) {
         const existingAccounts = existingUser.accounts.find((acc) => acc.provider === account.provider);
 
@@ -120,7 +120,7 @@ export const authOptions: NextAuthOptions = {
     },
 
     async jwt({ token, user, trigger, session }) {
-      // initial sign-in
+      // Initial sign-in
       if (user) {
         const dbUser = await prisma.user.findUnique({
           where: { id: user.id },
@@ -152,7 +152,7 @@ export const authOptions: NextAuthOptions = {
         }
       }
 
-      // session update
+      // Session update
       if (trigger === "update" && session) {
         token = { ...token, ...session.user };
       }

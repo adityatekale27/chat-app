@@ -1,7 +1,7 @@
 declare module "next-cloudinary" {
   interface CldUploadButtonProps {
     children?: React.ReactNode;
-    onUpload?: (result: { public_id: string; url: string; [key: string]: string | number | boolean }) => void;
+    onSuccess?: (result: { public_id: string; url: string; [key: string]: string | number | boolean }) => void;
     onError?: (error: Error) => void;
     onOpen?: () => void;
     options?: {

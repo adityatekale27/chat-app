@@ -8,6 +8,8 @@ import ToasterContext from "@/contexts/ToasterContext";
 import { PresenceProvider } from "@/contexts/PresenceContext";
 import PresenceManager from "@/components/others/PresenceManager";
 import getCurrentUser from "@/actions/getCurrentUser";
+import { WebRTCProvider } from "@/contexts/WebRTCContext";
+import CallManager from "@/components/chat-ui/CallManager";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -37,9 +39,12 @@ export default async function RootLayout({
         <PresenceProvider>
           <ThemeProvider>
             <AuthProvider>
-              {currentUser && <PresenceManager currentUser={currentUser} />}
-              <ToasterContext />
-              {children}
+              <WebRTCProvider>
+                {currentUser && <PresenceManager currentUser={currentUser} />}
+                {currentUser && <CallManager currentUser={currentUser} />}
+                <ToasterContext />
+                {children}
+              </WebRTCProvider>
             </AuthProvider>
           </ThemeProvider>
         </PresenceProvider>

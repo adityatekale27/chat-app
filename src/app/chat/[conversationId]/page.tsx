@@ -16,14 +16,23 @@ const ChatPage = () => {
   const { data: session } = useSession();
   const currentUser = session?.user;
   const { conversationId } = useParams();
-  const { friends } = useFriendRequests(currentUser?.id ?? "");
+  const { isFriendWith } = useFriendRequests(currentUser?.id ?? "");
   const { fetchMessages, messages, sendMessage, deleteMessage, currentConversation, fetchConversationById, messagesLoading, seenMessages } = useChat(currentUser?.id || "");
 
+  const [canSendMessages, setCanSendMessages] = useState<boolean | undefined>(undefined);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [fileUploading, setFileUploading] = useState(false);
   const [msgSending, setMsgSending] = useState(false);
   const [msgDeleting, setMsgDeleting] = useState(false);
   const [message, setMessage] = useState("");
+
+  /* Find the other user in one to one chat */
+  const otherUser = useMemo(() => {
+    if (!currentConversation?.isGroup) {
+      return currentConversation?.users.find((user) => user.id !== currentUser?.id);
+    }
+    return null;
+  }, [currentConversation?.isGroup, currentConversation?.users, currentUser?.id]);
 
   /**
    * Fetch current conversation and message on page load
@@ -54,10 +63,25 @@ const ChatPage = () => {
     }
   }, [conversationId, currentUser?.id, messages, seenMessages]);
 
-  /* Find the other user in one to one chat */
-  const otherUser = useMemo(() => {
-    return currentConversation?.users.find((user) => user.id !== currentUser?.id);
-  }, [currentConversation?.users, currentUser?.id]);
+  /**
+   * 1:1 conversation: Check if other user is still a friend,
+   * for group conversation check current user is in the group or not,
+   */
+  useEffect(() => {
+    if (!currentConversation || !currentUser?.id) return;
+
+    const checkPermission = () => {
+      if (!currentConversation?.isGroup) {
+        const isFriend = isFriendWith(otherUser?.id ?? "");
+        setCanSendMessages(isFriend);
+      } else {
+        const isInGroup = currentConversation?.users.some((user) => user.id === currentUser?.id);
+        setCanSendMessages(isInGroup);
+      }
+    };
+
+    checkPermission();
+  }, [currentConversation, currentUser?.id, isFriendWith, otherUser?.id]);
 
   /* Send new message */
   const handleSendMessage = useCallback(async () => {
@@ -96,6 +120,7 @@ const ChatPage = () => {
   const handleFileUpload = useCallback(
     async (result: { info?: { secure_url: string; bytes: number; format: string } }) => {
       try {
+        console.log("Cloudinary upload result:", result);
         setFileUploading(true);
         setUploadError(null);
 
@@ -129,28 +154,8 @@ const ChatPage = () => {
     [currentConversation?.id, sendMessage]
   );
 
-  /**
-   * 1:1 conversation: Check if other user is still a friend,
-   * for group conversation check current user is in the group or not,
-   */
-  const canSendMessages = useMemo(() => {
-    if (!currentConversation || !currentUser) return false;
-
-    // for 1:1
-    if (!currentConversation.isGroup) {
-      const isStillFrined = friends.some(
-        (friend) => (friend.sender.id === currentUser?.id && friend.receiver.id === otherUser?.id) || (friend.receiver.id === currentUser?.id && friend.sender.id === otherUser?.id)
-      );
-      return isStillFrined;
-    }
-
-    // for group
-    const isStillInGroup = currentConversation.users.some((user) => user.id === currentUser.id);
-    return isStillInGroup;
-  }, [currentConversation, currentUser, friends, otherUser?.id]);
-
   /* Handle loading and empty states */
-  if (messagesLoading) return <ChatSkeleton />;
+  if (messagesLoading || canSendMessages === undefined) return <ChatSkeleton />;
   if (!currentConversation) return <EmptyState />;
 
   return (

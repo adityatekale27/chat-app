@@ -1,26 +1,32 @@
 "use client";
 
-import React, { useMemo, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import Image from "next/image";
-import axios from "axios";
-import { format } from "date-fns";
-import toast from "react-hot-toast";
-import { CalendarDays, Captions, Mail, UserPen, Users } from "lucide-react";
-
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
+import { CalendarDays, Captions, Mail, UserPen, Users } from "lucide-react";
+
+import axios from "axios";
+import Image from "next/image";
+import { format } from "date-fns";
+import toast from "react-hot-toast";
+import { useSession } from "next-auth/react";
+import React, { useMemo, useState, useCallback, lazy, Suspense } from "react";
+import { useRouter } from "next/navigation";
+
 import ThemeToggle from "../others/ToggleTheme";
 import { DialogBox } from "../dialogs/DialogBox";
-import { ConfirmationDialog } from "../dialogs/ConfirmationDialog";
-import { EditProfile } from "./EditProfile";
 import { useFriendRequests } from "@/hooks/useFriendRequests";
-import { useSession } from "next-auth/react";
+import { ConfirmationDialog } from "../dialogs/ConfirmationDialog";
+import LoadingScreen from "../loading-states/LoadingScreen";
+import { useAuth } from "@/hooks/useAuth";
 
-const CurrentUserProfileComponent = () => {
+// Lazy loading components
+const EditProfile = lazy(() => import("@/components/user-profile/EditProfile"));
+
+export default function CurrentUserProfile() {
   const { data: session } = useSession();
+  const { logout } = useAuth();
   const user = session?.user;
   const router = useRouter();
   const { friends } = useFriendRequests(user?.id ?? "");
@@ -30,10 +36,10 @@ const CurrentUserProfileComponent = () => {
   const [deleteConfimation, setDeleteConfirmation] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
 
-  /* Memoized: get user's joining date */
+  /* Memoized: user's joining date */
   const userJoinDate = useMemo(() => format(new Date(user?.createdAt || new Date()), "PP"), [user?.createdAt]);
 
-  /* Memoized: get all friends of current user */
+  /* Memoized: all friends of current user */
   const friendsList = useMemo(() => {
     if (!user || !friends.length) return [];
     return friends.map((friend) => (friend.sender.id === user.id ? friend.receiver : friend.sender));
@@ -61,7 +67,7 @@ const CurrentUserProfileComponent = () => {
   }, [router, user?.id]);
 
   return (
-    <>
+    <Suspense fallback={<LoadingScreen />}>
       {/* Profile Trigger */}
       <Avatar className="h-9 w-9 md:h-10 md:w-10 rounded-full md:rounded-lg cursor-pointer border-2 border-transparent" onClick={() => setIsOpen(true)}>
         <AvatarImage src={user?.image || "/images/avatar.jpg"} alt={user?.name || "Profile"} />
@@ -87,6 +93,7 @@ const CurrentUserProfileComponent = () => {
               {editProfile ? (
                 <>
                   {/* Show edit profile dialog box (if edit profile is true) */}
+
                   <EditProfile mode="user" user={user} open={editProfile} onChange={() => setEditProfile(false)} />
                 </>
               ) : (
@@ -130,7 +137,7 @@ const CurrentUserProfileComponent = () => {
                                   key={friend.id}
                                   className="flex overflow-x-hidden item-center justify-start gap-3 px-3 py-2 rounded-lg bg-gray-300/30 dark:bg-[#212121] border border-gray-400/10">
                                   <div className="relative shrink-0 h-8 w-8">
-                                    <Image src={friend.image || "/images/avatar.jpg"} alt={friend.name || "Member"} fill className="rounded-full" />
+                                    <Image src={friend.image || "/images/avatar.jpg"} alt={friend.name || "Member"} loading="lazy" fill className="rounded-full" />
                                   </div>
                                   <div>
                                     <p className="pt-1 font-medium truncate max-w-[100px] md:max-w-[120px] whitespace-nowrap">{friend.name}</p>
@@ -156,11 +163,19 @@ const CurrentUserProfileComponent = () => {
                         )}
                       </div>
 
-                      {/* Edit profile button */}
-                      <Button className="w-full gap-2 mt-3 cursor-pointer" onClick={() => setEditProfile(true)}>
-                        <UserPen className="h-4 w-4" />
-                        Edit Profile
-                      </Button>
+                      <div>
+                        {/* Edit profile button */}
+                        <Button className="w-full gap-2 mt-3 cursor-pointer" onClick={() => setEditProfile(true)}>
+                          <UserPen className="h-4 w-4" />
+                          Edit Profile
+                        </Button>
+
+                        <Button
+                          className="w-full mt-2 bg-red-600 hover:bg-red-700 dark:bg-red-800 dark:hover:bg-red-800/80 hover:cursor-pointer text-white"
+                          onClick={() => logout()}>
+                          Logout
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </>
@@ -212,9 +227,9 @@ const CurrentUserProfileComponent = () => {
         description="This action cannot be undone. All your data will be permanently removed."
         onConfirm={handleAccountDelete}
       />
-    </>
+    </Suspense>
   );
-};
+}
 
 /* Generic profile field component */
 const ProfileField = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) => {
@@ -238,5 +253,3 @@ const ProfileField = ({ icon, label, value }: { icon: React.ReactNode; label: st
     </div>
   );
 };
-
-export const CurrentUserProfile = React.memo(CurrentUserProfileComponent);

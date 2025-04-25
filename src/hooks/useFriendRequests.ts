@@ -94,6 +94,17 @@ export function useFriendRequests(currentUserId: string, searchFriendTerm: strin
     }
   }, []);
 
+  // Check friendship with other user
+  const isFriendWith = useCallback(
+    (otherUserId: string | null) => {
+      if (!currentUserId || !otherUserId) return false;
+      return allContacts?.friends.some(
+        (friend) => (friend.sender.id === currentUserId && friend.receiver.id === otherUserId) || (friend.receiver.id === currentUserId && friend.sender.id === otherUserId)
+      );
+    },
+    [allContacts?.friends, currentUserId]
+  );
+
   /**
    * Send a friend request
    */
@@ -149,10 +160,7 @@ export function useFriendRequests(currentUserId: string, searchFriendTerm: strin
           : prev
       );
 
-      const wasFriend = allContacts?.friends.some((friend) => {
-        return (friend.sender.id === currentUserId && friend.receiver.id === receiverId) || (friend.receiver.id === currentUserId && friend.sender.id === receiverId);
-      });
-
+      const wasFriend = isFriendWith(receiverId);
       toast.success(wasFriend ? "Friend removed successfully" : "Friend request canceled");
     } catch (error: unknown) {
       console.log("cancelFriendRequest error:", error);
@@ -306,7 +314,6 @@ export function useFriendRequests(currentUserId: string, searchFriendTerm: strin
   // Pusher event for updated user
   useEffect(() => {
     const updatedUser = pusher.subscribe("userUpdate");
-
     updatedUser.bind("user:updated", (data: UpdatedUser) => {
       setAllContacts((prev) =>
         prev
@@ -325,7 +332,8 @@ export function useFriendRequests(currentUserId: string, searchFriendTerm: strin
       );
     });
 
-    updatedUser.bind("user:deleted", (userId: string) => {
+    const userDeleted = pusher.subscribe(`user:${currentUserId}`);
+    userDeleted.bind("user:deleted", (userId: string) => {
       setAllContacts((prev) =>
         prev
           ? {
@@ -338,9 +346,11 @@ export function useFriendRequests(currentUserId: string, searchFriendTerm: strin
 
     return () => {
       updatedUser.unbind_all();
+      userDeleted.unbind_all();
       pusher.unsubscribe("userUpdate");
+      pusher.unsubscribe(`user:${currentUserId}`);
     };
-  }, [pusher]);
+  }, [currentUserId, pusher]);
 
   return {
     sentRequests: allContacts?.sentRequest ?? [],
@@ -350,6 +360,7 @@ export function useFriendRequests(currentUserId: string, searchFriendTerm: strin
     cancelFriendRequest,
     acceptFriendRequest,
     fetchOtherUserFriends,
+    isFriendWith,
     otherUserFriends,
     error,
     isRateLimited,

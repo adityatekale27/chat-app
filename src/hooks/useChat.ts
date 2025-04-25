@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import axios from "axios";
-import { MessageStatus, Prisma } from "@prisma/client";
+import { MessageStatus } from "@prisma/client";
 import { getPusherClient } from "@/libs/pusher/pusherClient";
 import { ConversationWithMessages } from "@/types/chat";
 import { useRouter } from "next/navigation";
@@ -18,23 +18,6 @@ interface SeenMessagePayload {
   status: MessageStatus;
 }
 
-type Message = Prisma.MessageGetPayload<{
-  include: { sender: true; seenMessage: true };
-}>;
-
-type Conversation = Prisma.ConversationGetPayload<{
-  include: {
-    users: true;
-    groupAdmins: true;
-    groupCreator: true;
-    messages: {
-      orderBy: { createdAt: "desc" };
-      take: 1;
-      include: { sender: true; seenMessage: true };
-    };
-  };
-}>;
-
 export const useChat = (currentUserId: string) => {
   const pusherClient = getPusherClient();
   const router = useRouter();
@@ -45,6 +28,7 @@ export const useChat = (currentUserId: string) => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversation, setCurrentConversation] = useState<ConversationWithMessages | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [calls, setCalls] = useState<Call[]>([]);
 
   /**
    * Fetches all conversations for the current user (optionally filtered by a search term).
@@ -105,6 +89,28 @@ export const useChat = (currentUserId: string) => {
 
       const { data } = await axios.get(`/api/message/${conversationId}`);
       setMessages(data);
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        setError(error.response?.data?.message || "Failed to fetch messages");
+      } else {
+        setError("An unexpected error occurred");
+      }
+      console.error("fetchMessages error:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  /**
+   * Fetch all calls
+   */
+  const fetchAllCalls = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const { data } = await axios.get("/api/call");
+      setCalls(data);
     } catch (error: unknown) {
       if (axios.isAxiosError(error)) {
         setError(error.response?.data?.message || "Failed to fetch messages");
@@ -276,8 +282,9 @@ export const useChat = (currentUserId: string) => {
     loading,
     messagesLoading,
     error,
-    seenMessages,
     currentConversation,
+    calls,
+    seenMessages,
     fetchConversationById,
     fetchConversations,
     fetchMessages,
@@ -285,6 +292,7 @@ export const useChat = (currentUserId: string) => {
     setCurrentConversation,
     setConversations,
     deleteMessage,
+    fetchAllCalls,
   };
 };
 

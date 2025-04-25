@@ -1,6 +1,6 @@
 "use client";
 
-import { Trash2, Download, Eye, X, EllipsisVertical } from "lucide-react";
+import { Trash2, Download, Eye, EllipsisVertical } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,10 +11,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Message } from "@prisma/client";
-import React, { useCallback, useState } from "react";
+import React, { useState } from "react";
 import Image from "next/image";
 import { ConfirmationDialog } from "../dialogs/ConfirmationDialog";
-import ToolTip from "../others/Tooltip";
 import toast from "react-hot-toast";
 
 interface MessageOptionsProps {
@@ -23,35 +22,12 @@ interface MessageOptionsProps {
   currentUserId: string;
   seenList: User[];
   msgDeleting: boolean;
+  setView: () => void;
+  setDownload: () => void;
 }
 
-const MessageOptionsComponent = ({ message, onDelete, currentUserId, seenList, msgDeleting }: MessageOptionsProps) => {
-  const [previewOpen, setPreviewOpen] = useState(false);
+const MessageOptionsComponent = ({ message, onDelete, currentUserId, seenList, msgDeleting, setView, setDownload }: MessageOptionsProps) => {
   const [deleteConfimation, setDeleteConfirmation] = useState(false);
-
-  /* Image download handler */
-  const handleFileDownload = useCallback(() => {
-    if (!message.imageUrl) return;
-
-    const urlParts = message.imageUrl.split("/");
-    const uploadIndex = urlParts.findIndex((part) => part === "upload");
-    const publicId = urlParts
-      .slice(uploadIndex + 2)
-      .join("/")
-      .split(".")[0];
-
-    const downloadUrl = message.imageUrl.replace(/upload\/.*\//, "upload/fl_attachment/");
-
-    const link = document.createElement("a");
-    link.href = downloadUrl;
-    link.download = `download-${publicId.split("/").pop()}`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    toast.success("File downloading!");
-  }, [message.imageUrl]);
-
   const seenByOthers = seenList.filter((u) => u.id !== currentUserId);
 
   return (
@@ -64,13 +40,13 @@ const MessageOptionsComponent = ({ message, onDelete, currentUserId, seenList, m
               <EllipsisVertical size={16} className="text-gray-600 hover:text-white dark:text-gray-400 cursor-pointer" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-40">
-              <DropdownMenuItem onClick={() => setPreviewOpen(true)} className="cursor-pointer focus:bg-gray-100 dark:focus:bg-gray-700">
+              <DropdownMenuItem onClick={setView} className="cursor-pointer focus:bg-gray-100 dark:focus:bg-gray-700">
                 <div className="flex items-center gap-2">
                   <Eye size={14} />
                   <span>View</span>
                 </div>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleFileDownload} className="cursor-pointer focus:bg-gray-100 dark:focus:bg-gray-700">
+              <DropdownMenuItem onClick={setDownload} className="cursor-pointer focus:bg-gray-100 dark:focus:bg-gray-700">
                 <div className="flex items-center gap-2">
                   <Download size={14} />
                   <span>Download</span>
@@ -89,13 +65,13 @@ const MessageOptionsComponent = ({ message, onDelete, currentUserId, seenList, m
               {/* Options for image (view and download) */}
               {message.imageUrl && (
                 <>
-                  <DropdownMenuItem onClick={() => setPreviewOpen(true)} className="cursor-pointer focus:bg-gray-100 dark:focus:bg-gray-700">
+                  <DropdownMenuItem onClick={setView} className="cursor-pointer focus:bg-gray-100 dark:focus:bg-gray-700">
                     <div className="flex items-center gap-2">
                       <Eye size={14} />
                       <span>View</span>
                     </div>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleFileDownload} className="cursor-pointer focus:bg-gray-100 dark:focus:bg-gray-700">
+                  <DropdownMenuItem onClick={setDownload} className="cursor-pointer focus:bg-gray-100 dark:focus:bg-gray-700">
                     <div className="flex items-center gap-2">
                       <Download size={14} />
                       <span>Download</span>
@@ -167,32 +143,6 @@ const MessageOptionsComponent = ({ message, onDelete, currentUserId, seenList, m
           </DropdownMenu>
         </div>
       ) : null}
-
-      {/* File preview */}
-      {previewOpen && (
-        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4 overflow-auto">
-          <div className="relative w-full max-w-4xl h-full max-h-[90vh] flex flex-col">
-            <div className="flex-1 relative">
-              <Image src={message.imageUrl ?? ""} alt="File Preview" fill className="object-contain" quality={100} priority />
-            </div>
-            <div className="flex justify-center items-center gap-3 mt-4">
-              {/* download button */}
-              <ToolTip content="Download">
-                <button onClick={handleFileDownload} className="p-2 bg-slate-800 text-white rounded-lg hover:bg-blue-600/80 transition-colors cursor-pointer">
-                  <Download size={18} />
-                </button>
-              </ToolTip>
-
-              {/* close button */}
-              <ToolTip content="Close">
-                <button onClick={() => setPreviewOpen(false)} className="p-1 bg-gray-600/70 hover:bg-red-500 text-white rounded-full transition-colors cursor-pointer">
-                  <X size={22} />
-                </button>
-              </ToolTip>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Delete message confirmation box */}
       <ConfirmationDialog

@@ -31,15 +31,25 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    console.log(`Call answered: ${callId} by ${fromUserId}`);
-
-    /* Trigger pusher event for answer on private call with conversation id */
-    await pusherServer.trigger(`private-call-${conversationId}`, "answer", {
-      answer,
-      callId,
-      fromUserId,
-      status: updatedCall.status,
+    // fetch all users in the conversation
+    const participants = await prisma.conversation.findUnique({
+      where: { id: conversationId },
+      include: { users: true },
     });
+
+    /* Trigger pusher event for offer on private call for all users in conversation */
+    if (participants) {
+      await Promise.all(
+        participants?.users.map((user) =>
+          pusherServer.trigger(`private-user-${user.id}`, "answer", {
+            answer,
+            callId,
+            fromUserId,
+            status: updatedCall.status,
+          })
+        )
+      );
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
