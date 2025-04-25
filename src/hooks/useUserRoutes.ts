@@ -2,7 +2,7 @@
 
 import { useParams, usePathname, useSearchParams } from "next/navigation";
 import { useMemo } from "react";
-import { MessageSquare, LogOut, Users, UserSearch, Phone } from "lucide-react";
+import { MessageSquare, Users, UserSearch, Phone } from "lucide-react";
 
 const useUserRoutes = () => {
   const searchParams = useSearchParams();
@@ -29,7 +29,7 @@ const useUserRoutes = () => {
         url: "/chat",
         icon: MessageSquare,
         // Active when on /chat and not in a specific conversation or find-friends view
-        isActive: basepath === "/chat" && !conversationId && !isFindFriendActive,
+        isActive: basepath === "/chat" || basepath === `/chat/${conversationId}` && !isFindFriendActive,
       },
       {
         title: "Contacts",
@@ -51,12 +51,7 @@ const useUserRoutes = () => {
         icon: Phone,
         // Active when in a conversation on /chat but not in find-friends view
         isActive: basepath === "/calls" && !isFindFriendActive,
-      },
-      {
-        title: "Logout",
-        url: "#",
-        icon: LogOut,
-      },
+      }
     ];
   }, [pathname, conversationId, isFindFriendActive]);
 

@@ -111,7 +111,7 @@ export default function ContactSidebar({ currentUser, searchTerm }: ContactSideb
                 <div className="absolute right-0 top-5">
                   <DropdownMenu>
                     <DropdownMenuTrigger className="p-1 rounded-full hover:bg-gray-400 dark:hover:bg-gray-500/50">
-                      <EllipsisVertical size={16} className="text-slate-50 hover:text-white dark:text-gray-300 cursor-pointer" />
+                      <EllipsisVertical size={16} className="text-slate-600 hover:text-white dark:text-gray-300 cursor-pointer" />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-40">
                       <DropdownMenuItem

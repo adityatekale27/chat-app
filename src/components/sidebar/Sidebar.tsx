@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/sidebar";
 import clsx from "clsx";
 import { useParams, usePathname, useRouter } from "next/navigation";
-import { Search, UserPlus } from "lucide-react";
+import { LogOut, Search, UserPlus } from "lucide-react";
 import { useIsMobile } from "@/hooks/useMobile";
 import ToolTip from "../others/Tooltip";
 import ThemeToggle from "../others/ToggleTheme";
@@ -25,7 +25,7 @@ import useUserRoutes from "@/hooks/useUserRoutes";
 import { useAuth } from "@/hooks/useAuth";
 import { useFriendRequests } from "@/hooks/useFriendRequests";
 import LoadingScreen from "../loading-states/LoadingScreen";
-import CallsSidebar from "./CallsSidebar";
+import { Button } from "../ui/button";
 
 interface SidebarProps {
   children: React.ReactNode;
@@ -35,6 +35,7 @@ interface SidebarProps {
 // Lazy loading components
 const ChatSidebar = lazy(() => import("@/components/sidebar/ChatSidebar"));
 const ContactSidebar = lazy(() => import("@/components/sidebar/ContactSidebar"));
+const CallsSidebar = lazy(() => import("@/components/sidebar/CallsSidebar"));
 const FindFriend = lazy(() => import("@/components/dialogs/FindFriend"));
 const CreateGroup = lazy(() => import("@/components/dialogs/CreateGroup"));
 const CurrentUserProfile = lazy(() => import("@/components/user-profile/CurrentUserProfile"));
@@ -88,7 +89,7 @@ function SidebarComponent({ children, currentUser }: SidebarProps & React.Compon
         <div className="flex h-dvh w-full">
           <div className={clsx(isMobile && conversationId ? "hidden" : "flex", isMobile ? "flex-col-reverse w-full" : "flex-row")}>
             {/* First sidebar (bottom sidebar for mobile) */}
-            <Sidebar collapsible="none" className={clsx("dark:bg-black bg-[#979dac]", isMobile ? "w-full h-15" : "p-1.5 !w-[calc(var(--sidebar-width-icon)_+_10px)]")}>
+            <Sidebar collapsible="none" className={clsx("dark:bg-black bg-[#979dac]", isMobile ? "w-full h-16" : "p-1.5 !w-[calc(var(--sidebar-width-icon)_+_10px)]")}>
               <div
                 className={clsx(`dark:bg-[#212121] bg-[#fffbfe] h-full justify-center items-center`, isMobile ? "flex border-t border-gray-500/50" : "flex flex-col rounded-lg")}>
                 {/* Show user profile image only on desktop */}
@@ -104,7 +105,7 @@ function SidebarComponent({ children, currentUser }: SidebarProps & React.Compon
                     <SidebarGroupContent>
                       <SidebarMenu className={clsx(isMobile && "flex justify-around items-center flex-row")}>
                         {routes.map((item) => (
-                          <SidebarMenuItem key={item.title} className={clsx(isMobile && item.title === "Logout" ? "hidden" : "")}>
+                          <SidebarMenuItem key={item.title}>
                             {/* Find friend dialog box and friend requests notification */}
                             {item.title === "Find Friends" && (
                               <>
@@ -116,13 +117,16 @@ function SidebarComponent({ children, currentUser }: SidebarProps & React.Compon
                               </>
                             )}
 
-                            <SidebarMenuButton
-                              tooltip={{ children: item.title, hidden: false }}
-                              onClick={() => handleSidebarRoutesClick(item)}
-                              isActive={item.isActive}
-                              className="px-3 md:px-3 h-10 w-10 dark:text-slate-50 text-slate-900 hover:cursor-pointer">
-                              <item.icon />
-                            </SidebarMenuButton>
+                            <div className="flex flex-col items-center justify-around">
+                              <SidebarMenuButton
+                                tooltip={{ children: item.title, hidden: false }}
+                                onClick={() => handleSidebarRoutesClick(item)}
+                                isActive={item.isActive}
+                                className="px-3 h-10 w-10 dark:text-slate-50 text-slate-900 hover:cursor-pointer">
+                                <item.icon />
+                              </SidebarMenuButton>
+                              <span className="block text-xs md:hidden dark:text-gray-300 text-black">{item.title}</span>
+                            </div>
                           </SidebarMenuItem>
                         ))}
                       </SidebarMenu>
@@ -130,13 +134,18 @@ function SidebarComponent({ children, currentUser }: SidebarProps & React.Compon
                   </SidebarGroup>
                 </SidebarContent>
 
-                {/* Show theme toggle only on desktop */}
+                {/* Show theme toggle and logout button only on desktop */}
                 {!isMobile && (
-                  <ToolTip content="Toggle theme">
-                    <div className={`mb-3 `}>
+                  <>
+                    <div className={`mb-2`}>
                       <ThemeToggle />
                     </div>
-                  </ToolTip>
+                    <Button
+                      onClick={() => logout()}
+                      className="w-9.5 bg-transparent border text-black dark:text-white mb-3 hover:cursor-pointer hover:bg-red-700 hover:text-white dark:hover:bg-red-700/50">
+                      <LogOut />
+                    </Button>
+                  </>
                 )}
               </div>
             </Sidebar>
