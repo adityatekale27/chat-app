@@ -17,7 +17,7 @@ interface ForgotPasswordProps {
 }
 
 const ForgotPasswordSchema = z.object({
-  email: z.string().email({ message: "A valid email is required" }),
+  email: z.string().email({ message: "A valid email is required, please add" }),
 });
 
 type ForgotPasswordFormValues = z.infer<typeof ForgotPasswordSchema>;
